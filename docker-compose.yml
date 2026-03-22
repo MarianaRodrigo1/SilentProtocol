@@ -1,0 +1,85 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: silent-protocol-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-silent_protocol}
+      POSTGRES_USER: ${POSTGRES_USER:-spy_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spy_password}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+    networks:
+      - silent-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: silent-protocol-backend
+    restart: unless-stopped
+    depends_on:
+      - database
+    environment:
+      PORT: 3000
+      CORS_ORIGINS: "*"
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-silent_protocol}
+      DB_USER: ${POSTGRES_USER:-spy_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-spy_password}
+      DB_POOL_MAX: 20
+      DB_RETRY_ATTEMPTS: 8
+      DB_RETRY_DELAY_MS: 2000
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    networks:
+      - silent-net
+
+  frontend:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile
+    container_name: silent-protocol-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-http://backend:3000}
+      CI: "1"
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+    ports:
+      - "${FRONTEND_PORT:-19006}:19006"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    networks:
+      - silent-net
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: silent-protocol-ngrok
+    restart: unless-stopped
+    command:
+      - "http"
+      - "backend:3000"
+    depends_on:
+      - backend
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    ports:
+      - "4040:4040"
+    networks:
+      - silent-net
+
+volumes:
+  postgres_data:
+
+networks:
+  silent-net:
+    driver: bridge

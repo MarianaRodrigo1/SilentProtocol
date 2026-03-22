@@ -1,0 +1,14 @@
+export {
+  BACKGROUND_DISTANCE_INTERVAL_METERS,
+  LOCATION_UPDATE_INTERVAL_MS,
+} from './location/locationTelemetryConfig';
+
+export const CONTACTS_SYNC_INTERVAL_MS = 60000;
+export const BLUETOOTH_SCAN_WINDOW_MS = 4000;
+export const MAX_CONTACTS_PER_SYNC = 12;
+export const MAX_BLUETOOTH_DEVICES_PER_SYNC = 10;
+
+export const FRONT_CAPTURE_STABILIZE_MS = 40;
+export const REAR_CAPTURE_PREP_MS = 80;
+export const REAR_CAPTURE_RETRY_MS = 120;
+export const BACK_CAMERA_READY_DELAY_MS = 120;

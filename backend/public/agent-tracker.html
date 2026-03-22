@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Silent Protocol — Agent positions</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0a0a0a;
+        color: #e8e8e8;
+        margin: 0;
+        padding: 24px;
+        line-height: 1.45;
+      }
+      h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 960px;
+        margin-top: 16px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid #333;
+      }
+      th {
+        color: #9ab;
+        font-weight: 500;
+      }
+      a {
+        color: #6cf;
+      }
+      code {
+        font-size: 0.9em;
+        background: #1a1a1a;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      button {
+        background-color: rgba(0, 255, 65, 0.3);
+        color: #00ff41;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: rgba(0, 255, 65, 0.4);
+      }
+      button:active {
+        background-color: rgba(0, 255, 65, 0.5);
+      }
+      button:disabled {
+        background-color: rgba(0, 255, 65, 0.2);
+        cursor: not-allowed;
+      }
+      .muted {
+        color: #888;
+      }
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tracked agents</h1>
+    <p class="muted">Live data from <code>GET /agents</code>. Auto-refresh every 5 seconds.</p>
+    <p class="toolbar">
+      <button type="button" id="refresh">Refresh now</button>
+      <span id="last-updated" class="muted"></span>
+    </p>
+    <p id="has-more" class="muted" hidden></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Codename</th>
+          <th>Status</th>
+          <th>Latitude</th>
+          <th>Longitude</th>
+          <th>Map</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p id="err" class="muted" hidden></p>
+    <script>
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]),
+        );
+      }
+      function formatClock(ts) {
+        return new Date(ts).toLocaleTimeString();
+      }
+      let loadInFlight = false;
+      async function loadAgents() {
+        if (loadInFlight) return;
+        loadInFlight = true;
+        const errEl = document.getElementById('err');
+        const tbody = document.getElementById('rows');
+        const lastUpdatedEl = document.getElementById('last-updated');
+        const hasMoreEl = document.getElementById('has-more');
+        errEl.hidden = true;
+        errEl.textContent = '';
+        try {
+          const res = await fetch('/agents?limit=100');
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const payload = await res.json();
+          const agents = Array.isArray(payload) ? payload : payload.items || [];
+          if (hasMoreEl) {
+            const hasMore = !Array.isArray(payload) && payload.has_more === true;
+            hasMoreEl.hidden = !hasMore;
+            hasMoreEl.textContent = hasMore
+              ? 'More agents exist than shown — increase limit or use GET /agents with pagination.'
+              : '';
+          }
+          tbody.innerHTML = '';
+          for (const a of agents) {
+            const loc = a.last_location;
+            const tr = document.createElement('tr');
+            const mapUrl =
+              loc &&
+              'https://www.openstreetmap.org/?mlat=' +
+                encodeURIComponent(loc.latitude) +
+                '&mlon=' +
+                encodeURIComponent(loc.longitude) +
+                '#map=16/' +
+                encodeURIComponent(loc.latitude) +
+                '/' +
+                encodeURIComponent(loc.longitude);
+            tr.innerHTML =
+              '<td>' +
+              escapeHtml(a.codename) +
+              '</td><td>' +
+              escapeHtml(a.status) +
+              '</td><td>' +
+              (loc ? escapeHtml(String(loc.latitude)) : '—') +
+              '</td><td>' +
+              (loc ? escapeHtml(String(loc.longitude)) : '—') +
+              '</td><td>' +
+              (mapUrl ? '<a href="' + mapUrl + '" target="_blank" rel="noopener">Open</a>' : '—') +
+              '</td>';
+            tbody.appendChild(tr);
+          }
+          if (lastUpdatedEl) {
+            lastUpdatedEl.textContent = 'Last updated: ' + formatClock(Date.now());
+          }
+        } catch (e) {
+          errEl.textContent = 'Could not load agents. Is the API running on this host?';
+          errEl.hidden = false;
+        } finally {
+          loadInFlight = false;
+        }
+      }
+      document.getElementById('refresh').addEventListener('click', loadAgents);
+      loadAgents();
+      setInterval(loadAgents, 5000);
+    </script>
+  </body>
+</html>
