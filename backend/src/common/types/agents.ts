@@ -1,9 +1,9 @@
-import { AgentStatus } from './dto/update-agent-status.dto';
+export const ALLOWED_AGENT_STATUSES = ['STARTED', 'ACTIVE', 'COMPLETED'] as const;
+export type AgentStatus = (typeof ALLOWED_AGENT_STATUSES)[number];
 
 export interface AgentRecord {
   id: string;
   codename: string;
-  biometric_confirmed: boolean;
   terms_accepted: boolean;
   status: AgentStatus;
   created_at: string;
@@ -16,35 +16,15 @@ export interface AgentLocationRecord {
   longitude: number;
   accuracy_meters: number | null;
   source: string;
-  captured_at: string;
   created_at: string;
-}
-
-export interface AgentBluetoothScanRecord {
-  id: string;
-  location_id: string | null;
-  mac_address: string;
-  device_name: string | null;
-  rssi: number | null;
-  scanned_at: string;
-}
-
-export interface AgentContactLeakRecord {
-  id: string;
-  location_id: string | null;
-  contact_hash: string;
-  leak_source: string;
-  risk_level: 'low' | 'medium' | 'high';
-  detected_at: string;
 }
 
 export interface AgentVisualEvidenceRecord {
   id: string;
-  location_id: string | null;
   media_url: string;
   media_type: 'TARGET' | 'STEALTH';
   metadata: Record<string, unknown> | null;
-  captured_at: string;
+  created_at: string;
 }
 
 export interface AgentWithLastLocation {
@@ -54,17 +34,6 @@ export interface AgentWithLastLocation {
   created_at: string;
   updated_at: string;
   last_location: AgentLocationRecord | null;
-}
-
-export interface AgentListQueryOptions {
-  limit: number;
-  offset: number;
-  status?: AgentStatus;
-}
-
-export interface AgentTelemetryQueryOptions {
-  limit: number;
-  offset: number;
 }
 
 export interface PaginatedItemsResponse<T> {
@@ -83,4 +52,5 @@ export interface AgentReportSummary {
     contacts_leaks: number;
     visual_evidence: number;
   };
+  visual_evidence_recent: AgentVisualEvidenceRecord[];
 }

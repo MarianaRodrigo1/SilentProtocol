@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { showMissionObjectiveAlert } from './missionAlerts';
+import { showMissionObjectiveAlert } from './missionTask.telemetry';
 import { executeMissionTask } from './missionTaskExecutors';
-import type { MissionTaskExecutorDeps } from './missionTask.types';
+import type { MissionTaskExecutorDeps } from '../types/missionRuntime';
 
 type UseMissionTaskRunnerOptions = Omit<MissionTaskExecutorDeps, 'runWithSubmittingGuard' | 'showObjectiveAlert'>;
 

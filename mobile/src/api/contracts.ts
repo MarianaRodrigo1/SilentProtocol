@@ -1,17 +1,15 @@
-export type AgentStatus = 'ACTIVE' | 'MISSION_ACTIVE' | 'MISSION_COMPLETE';
+export type AgentStatus = 'STARTED' | 'ACTIVE' | 'COMPLETED';
 export type MediaType = 'TARGET' | 'STEALTH';
 export type ContactRiskLevel = 'low' | 'medium' | 'high';
 
 export interface AgentPayload {
   codename: string;
-  biometric_confirmed: boolean;
   terms_accepted: boolean;
 }
 
 export interface AgentRecord {
   id: string;
   codename: string;
-  biometric_confirmed: boolean;
   terms_accepted: boolean;
   status: AgentStatus;
   created_at: string;
@@ -24,17 +22,24 @@ export interface AgentLocationRecord {
   longitude: number;
   accuracy_meters: number | null;
   source: string;
-  captured_at: string;
   created_at: string;
+}
+
+export interface AgentWithLastLocation {
+  id: string;
+  codename: string;
+  status: AgentStatus;
+  created_at: string;
+  updated_at: string;
+  last_location: AgentLocationRecord | null;
 }
 
 export interface AgentVisualEvidenceRecord {
   id: string;
-  location_id: string | null;
   media_url: string;
   media_type: MediaType;
   metadata: Record<string, unknown> | null;
-  captured_at: string;
+  created_at: string;
 }
 
 export interface PaginatedItemsResponse<T> {
@@ -44,6 +49,21 @@ export interface PaginatedItemsResponse<T> {
   has_more: boolean;
 }
 
+export interface InsertedCountResponse {
+  inserted: number;
+}
+
+export interface InsertedMediaRecord {
+  id: string;
+  media_url: string;
+  media_type: MediaType;
+}
+
+export interface LocationBatchInsertResponse {
+  inserted: number;
+  skipped_duplicates: number;
+}
+
 export interface AgentReportSummary {
   agent: {
     id: string;
@@ -51,7 +71,6 @@ export interface AgentReportSummary {
     status: AgentStatus;
     created_at: string;
     updated_at: string;
-    biometric_confirmed: boolean;
     terms_accepted: boolean;
   };
   last_location: AgentLocationRecord | null;
@@ -61,6 +80,7 @@ export interface AgentReportSummary {
     contacts_leaks: number;
     visual_evidence: number;
   };
+  visual_evidence_recent: AgentVisualEvidenceRecord[];
 }
 
 export interface PostLocationPayload {
@@ -70,12 +90,11 @@ export interface PostLocationPayload {
   longitude: number;
   accuracy_meters?: number;
   source?: string;
-  captured_at?: string;
+  created_at?: string;
 }
 
 export interface BluetoothScanPayload {
   agent_id: string;
-  location_id?: string;
   mac_address: string;
   device_name?: string;
   rssi?: number;
@@ -83,7 +102,6 @@ export interface BluetoothScanPayload {
 
 export interface ContactLeakPayload {
   agent_id: string;
-  location_id?: string;
   contact_hash: string;
   leak_source: string;
   risk_level?: ContactRiskLevel;

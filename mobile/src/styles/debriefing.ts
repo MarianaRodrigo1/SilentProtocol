@@ -1,7 +1,9 @@
 import { StyleSheet } from 'react-native';
 import { palette, typography, spacing, radius } from './theme';
 
-export default StyleSheet.create({
+export const debriefingActivityIndicatorColor = palette.matrixGreen;
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: palette.bgPrimary,
@@ -70,6 +72,27 @@ export default StyleSheet.create({
     marginBottom: spacing.sm,
     letterSpacing: 1,
   },
+  subtitleNoteSlate: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.terminalSlate,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    letterSpacing: 1,
+  },
+  subtitleNoteWarning: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.warningAmber,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    letterSpacing: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
 
   threatBanner: {
     backgroundColor: palette.bgCard,
@@ -128,6 +151,15 @@ export default StyleSheet.create({
     lineHeight: 22,
     marginBottom: spacing.sm,
   },
+  warningTextCritical: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.alertRed,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
 
   card: {
     backgroundColor: palette.bgCard,
@@ -164,6 +196,13 @@ export default StyleSheet.create({
     fontSize: typography.fontSizes.md,
     color: palette.matrixGreen,
     fontWeight: typography.fontWeights.bold,
+  },
+  dataValueSolo: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.matrixGreen,
+    fontWeight: typography.fontWeights.bold,
+    textAlign: 'left',
   },
 
   fingerprintGrid: {
@@ -249,6 +288,15 @@ export default StyleSheet.create({
     borderRadius: radius.sm,
     marginBottom: spacing.lg,
   },
+  toggleButtonRetry: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: palette.matrixGreen,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
   toggleButtonText: {
     fontFamily: typography.fontFamily,
     fontSize: typography.fontSizes.md,
@@ -285,6 +333,15 @@ export default StyleSheet.create({
     lineHeight: 22,
     marginBottom: spacing.sm,
   },
+  finalTextCritical: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.alertRed,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
 
   restartButton: {
     backgroundColor: 'transparent',
@@ -314,3 +371,5 @@ export default StyleSheet.create({
     marginTop: spacing.lg,
   },
 });
+
+export default styles;

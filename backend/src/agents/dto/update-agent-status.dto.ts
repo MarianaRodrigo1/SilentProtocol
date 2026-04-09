@@ -1,11 +1,11 @@
 import { IsIn, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { ALLOWED_AGENT_STATUSES, type AgentStatus } from '../../common/types/agents';
 
-export const ALLOWED_AGENT_STATUSES = ['ACTIVE', 'MISSION_ACTIVE', 'MISSION_COMPLETE'] as const;
-export type AgentStatus = (typeof ALLOWED_AGENT_STATUSES)[number];
+export { ALLOWED_AGENT_STATUSES, type AgentStatus } from '../../common/types/agents';
 
 export class UpdateAgentStatusDto {
-  @ApiProperty({ enum: ALLOWED_AGENT_STATUSES, example: 'MISSION_ACTIVE' })
+  @ApiProperty({ enum: ALLOWED_AGENT_STATUSES, example: 'ACTIVE' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)

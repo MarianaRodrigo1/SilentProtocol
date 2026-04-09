@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { BleManager, Device as BleDevice } from 'react-native-ble-plx';
 import { Platform, PermissionsAndroid } from 'react-native';
-import type { BluetoothScanPayload } from '../api/contracts';
-import { postBluetoothScans } from '../api/intelligence';
+import { type BluetoothScanPayload, postBluetoothScans } from '../api';
 import {
   enqueueBluetoothOutbox,
   enqueueBluetoothOutboxMany,
   flushBluetoothOutboxInBatches,
 } from '../services/bluetoothOutbox';
 import { t } from '../i18n';
-import { toMacLikeAddress } from '../utils/missionUtils';
+import { toMacLikeAddress } from '../utils/identifiers';
 import {
   BLUETOOTH_SCAN_WINDOW_MS,
   MAX_BLUETOOTH_DEVICES_PER_SYNC,
 } from '../constants';
-import type { PermissionFlowResult } from './permission.types';
-import type { BluetoothSyncResult } from './telemetry.types';
+import type { BluetoothSyncResult, PermissionFlowResult } from '../types/missionRuntime';
 import { useOutboxDelivery } from './useOutboxDelivery';
 import {
   deliverTelemetryBatch,
@@ -69,7 +67,7 @@ export function useBluetoothSync(agentId: string, syncToServer = true) {
 
         if (connectResult === PermissionsAndroid.RESULTS.GRANTED) return 'granted';
         return connectResult === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ? 'blocked' : 'denied';
-      } catch (_error: unknown) {
+      } catch {
         return 'denied';
       }
     },
@@ -137,7 +135,7 @@ export function useBluetoothSync(agentId: string, syncToServer = true) {
           timeoutId = setTimeout(() => {
             finalize(scanFailed);
           }, BLUETOOTH_SCAN_WINDOW_MS);
-        } catch (_error: unknown) {
+        } catch {
           if (timeoutId) clearTimeout(timeoutId);
           finalize(true);
         }
@@ -186,11 +184,12 @@ export function useBluetoothSync(agentId: string, syncToServer = true) {
             await addBluetoothScanCount(agentId, payloads.length);
           },
         });
-      } catch (_error: unknown) {
+      } catch {
         return deliveryFailedTelemetryResult();
       }
     },
     [
+      agentId,
       enqueueManyAndFlushSafely,
       flushOutboxSafely,
       syncToServer,

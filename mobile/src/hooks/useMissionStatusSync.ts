@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { syncAgentStatusBestEffort } from './missionControllerStatus';
 
-type MissionStatus = 'MISSION_ACTIVE' | 'MISSION_COMPLETE';
+type MissionStatus = 'ACTIVE' | 'COMPLETED';
 
 interface UseMissionStatusSyncOptions {
   agentId: string;

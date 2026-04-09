@@ -2,14 +2,6 @@ import { StyleSheet } from 'react-native';
 import { palette, typography, spacing, radius } from './theme';
 
 export default StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: palette.bgPrimary,
-  },
-  safeArea: {
-    flex: 1,
-  },
-
   bootContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -222,6 +214,14 @@ export default StyleSheet.create({
     fontSize: typography.fontSizes.md,
     color: palette.textSecondary,
     lineHeight: 22,
+    marginBottom: spacing.sm,
+  },
+  deploymentStandBy: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.textMuted,
+    lineHeight: 22,
+    marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   agentProfileRow: {

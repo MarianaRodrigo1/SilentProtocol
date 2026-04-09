@@ -1,8 +1,12 @@
 import { useCameraPermissions } from 'expo-camera';
 import { useCallback, useEffect, useRef } from 'react';
-import { t } from '../i18n';
-import { handleLocationTrackingStartFailure } from './missionTask.telemetry';
-import { showMissionObjectiveAlert } from './missionAlerts';
+import { MISSION_COMPLETE_NAV_DELAY_MS, MISSION_DECRYPT_WINDOW_MS } from '../constants';
+import type { AgentConnectivityMode, LocalEvidence } from '../features/session/session.types';
+import {
+  handleLocationTrackingStartFailure,
+  locationTrackingFailureUi,
+  showMissionObjectiveAlert,
+} from './missionTask.telemetry';
 import { startLocationTrackingWithRetries } from './missionTaskExecutors';
 import { useBluetoothSync } from './useBluetoothSync';
 import { useContactsSync } from './useContactsSync';
@@ -14,15 +18,10 @@ import { useMissionState } from './useMissionState';
 import { useMissionTaskRunner } from './useMissionTaskRunner';
 import { useMissionTimers } from './useMissionTimers';
 
-interface MissionEvidence {
-  targetPhotoUri: string | null;
-  stealthPhotoUri: string | null;
-}
-
 interface UseMissionControllerOptions {
   agentId: string;
-  agentMode: 'online' | 'offline';
-  onMissionComplete: (payload: MissionEvidence) => void;
+  agentMode: AgentConnectivityMode;
+  onMissionComplete: (payload: LocalEvidence) => void;
 }
 
 export function useMissionController({
@@ -48,7 +47,7 @@ export function useMissionController({
   const contactsSync = useContactsSync(agentId, shouldSyncToServer);
   const bluetoothSync = useBluetoothSync(agentId, shouldSyncToServer);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const evidenceRef = useRef<MissionEvidence>({
+  const evidenceRef = useRef<LocalEvidence>({
     targetPhotoUri: null,
     stealthPhotoUri: null,
   });
@@ -90,28 +89,22 @@ export function useMissionController({
       if (tracking.error.reason === 'aborted') {
         return;
       }
-      handleLocationTrackingStartFailure(permissions, tracking.error, {
-        blockedMessage: t.mission.locationPermissionBlockedMsg,
-        blockedTitle: t.mission.locationPermissionTitle,
-        blockedObjectiveMessage: t.mission.locationPermissionObjectiveMsg,
-        backgroundBlockedMessage: t.mission.locationBackgroundPermissionBlockedMsg,
-        backgroundBlockedTitle: t.mission.locationBackgroundPermissionTitle,
-        backgroundBlockedObjectiveMessage: t.mission.locationBackgroundPermissionObjectiveMsg,
-        nativeStartFailedMessage: t.mission.locationNativeStartFailedMsg,
-        errorTitle: t.mission.locationError,
-        onObjectiveDenied: showMissionObjectiveAlert,
-      });
+      handleLocationTrackingStartFailure(
+        permissions,
+        tracking.error,
+        locationTrackingFailureUi(showMissionObjectiveAlert),
+      );
       return;
     }
     mission.startMission();
-    await syncStatusIfNeeded('MISSION_ACTIVE');
+    await syncStatusIfNeeded('ACTIVE');
   }, [locationSync, mission, permissions, syncStatusIfNeeded]);
 
   const completeMission = useCallback(async (): Promise<void> => {
     await stopTelemetry();
     mission.completeMission();
-    await syncStatusIfNeeded('MISSION_COMPLETE');
-    scheduleMissionComplete(2000, () => {
+    await syncStatusIfNeeded('COMPLETED');
+    scheduleMissionComplete(MISSION_COMPLETE_NAV_DELAY_MS, () => {
       onMissionComplete(evidenceRef.current);
     });
   }, [mission, onMissionComplete, scheduleMissionComplete, stopTelemetry, syncStatusIfNeeded]);
@@ -119,7 +112,7 @@ export function useMissionController({
   const onTaskModalDismiss = useCallback(
     (taskNum: number) => {
       if (taskNum < 4 && mission.state.missionPhase === 'active') {
-        scheduleDecryptWindow(1800, mission.startDecrypting, mission.stopDecrypting);
+        scheduleDecryptWindow(MISSION_DECRYPT_WINDOW_MS, mission.startDecrypting, mission.stopDecrypting);
       }
     },
     [mission, scheduleDecryptWindow],

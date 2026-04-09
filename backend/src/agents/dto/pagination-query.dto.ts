@@ -7,7 +7,7 @@ import {
   DEFAULT_MIN_LIMIT,
   DEFAULT_MIN_OFFSET,
   PAGINATION_BOUNDS,
-} from '../agents.pagination';
+} from '../../common/constants';
 
 export class PaginationQueryDto {
   @ApiPropertyOptional({

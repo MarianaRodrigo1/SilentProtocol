@@ -1,6 +1,22 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Pool } from 'pg';
+import type { ListAgentsQueryDto } from '../agents/dto/list-agents-query.dto';
+import type { PaginationQueryDto } from '../agents/dto/pagination-query.dto';
 import { ERROR_MESSAGES } from '../common/error-messages';
-import { AgentsService } from '../agents/agents.service';
+import type {
+  AgentLocationRecord,
+  AgentReportSummary,
+  AgentWithLastLocation,
+  PaginatedItemsResponse,
+} from '../common/types/agents';
+import {
+  normalizePagination,
+  PAGINATION_BOUNDS,
+  slicePaginated,
+} from '../common/utils/pagination';
+import { assertAgentExists, assertAgentsExist } from '../common/utils/agent-existence';
+import { assertNonEmptyIngestBatch } from '../common/utils/ingest-batch';
+import { PG_POOL } from '../database/pg-pool.provider';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
@@ -11,101 +27,36 @@ import {
   InsertedCountResponse,
   InsertedMediaRecord,
   LocationBatchInsertResponse,
-} from './intelligence.types';
-
-const MAX_BATCH_SIZE = 100;
-
-const LOCATIONS_AGENT_FK_CONSTRAINT = 'fk_locations_agent_id';
-
-function isMissingAgentForLocationInsert(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const pg = error as { code?: unknown; constraint?: unknown };
-  return pg.code === '23503' && pg.constraint === LOCATIONS_AGENT_FK_CONSTRAINT;
-}
+} from '../common/types/telemetry';
 
 @Injectable()
 export class IntelligenceService {
   constructor(
     private readonly intelligenceRepository: IntelligenceRepository,
-    private readonly agentsService: AgentsService,
+    @Inject(PG_POOL) private readonly pool: Pool,
   ) {}
 
-  private ensureNonEmptyBatch<T>(items: T[], label: string): void {
-    if (items.length === 0) {
-      throw new BadRequestException(ERROR_MESSAGES.BATCH_EMPTY(label));
-    }
-    if (items.length > MAX_BATCH_SIZE) {
-      throw new BadRequestException(ERROR_MESSAGES.BATCH_LIMIT_EXCEEDED(label, MAX_BATCH_SIZE));
-    }
-  }
-
-  private async ensureLocationOwnershipByAgent(
-    refs: Array<{ agent_id: string; location_id?: string }>,
-  ): Promise<void> {
-    const normalizedRefs = refs
-      .map((ref) => ({
-        agent_id: ref.agent_id,
-        location_id: ref.location_id?.trim(),
-      }))
-      .filter(
-        (ref): ref is { agent_id: string; location_id: string } =>
-          typeof ref.location_id === 'string' && ref.location_id.length > 0,
-      );
-    if (normalizedRefs.length === 0) return;
-
-    const uniqueRefs = [
-      ...new Map(normalizedRefs.map((ref) => [`${ref.agent_id}|${ref.location_id}`, ref])).values(),
-    ];
-    const validOwnedLocations = await this.intelligenceRepository.countOwnedLocationsByAgent(uniqueRefs);
-    if (validOwnedLocations !== uniqueRefs.length) {
-      throw new BadRequestException(ERROR_MESSAGES.LOCATION_OWNERSHIP_INVALID);
-    }
-  }
-
-  private async ensureAgentsAndLocationOwnership(
-    refs: Array<{ agent_id: string; location_id?: string }>,
-  ): Promise<void> {
-    await this.agentsService.ensureAgentsExist(refs.map((ref) => ref.agent_id));
-    await this.ensureLocationOwnershipByAgent(refs);
-  }
-
   async createScansBatch(scans: CreateScanDto[]): Promise<InsertedCountResponse> {
-    this.ensureNonEmptyBatch(scans, 'Scans');
-    await this.ensureAgentsAndLocationOwnership(
-      scans.map((scan) => ({
-        agent_id: scan.agent_id,
-        location_id: scan.location_id,
-      })),
-    );
+    assertNonEmptyIngestBatch(scans, 'Scans');
+    await assertAgentsExist(this.pool, scans.map((scan) => scan.agent_id));
     return this.intelligenceRepository.insertScans(scans);
   }
 
   async createContactsBatch(contacts: CreateContactDto[]): Promise<InsertedCountResponse> {
-    this.ensureNonEmptyBatch(contacts, 'Contacts');
-    await this.ensureAgentsAndLocationOwnership(
-      contacts.map((contact) => ({
-        agent_id: contact.agent_id,
-        location_id: contact.location_id,
-      })),
-    );
+    assertNonEmptyIngestBatch(contacts, 'Contacts');
+    await assertAgentsExist(this.pool, contacts.map((contact) => contact.agent_id));
     return this.intelligenceRepository.insertContacts(contacts);
   }
 
   async createLocationsBatch(locations: CreateLocationDto[]): Promise<LocationBatchInsertResponse> {
-    this.ensureNonEmptyBatch(locations, 'Locations');
+    assertNonEmptyIngestBatch(locations, 'Locations');
+    await assertAgentsExist(this.pool, locations.map((row) => row.agent_id));
 
-    try {
-      const insertedRows = await this.intelligenceRepository.insertLocationRows(locations);
-      return {
-        inserted: insertedRows.length,
-        skipped_duplicates: locations.length - insertedRows.length,
-      };
-    } catch (error: unknown) {
-      if (isMissingAgentForLocationInsert(error)) {
-        throw new NotFoundException(ERROR_MESSAGES.AGENT_NOT_FOUND);
-      }
-      throw error;
-    }
+    const insertedRows = await this.intelligenceRepository.insertLocationRows(locations);
+    return {
+      inserted: insertedRows.length,
+      skipped_duplicates: locations.length - insertedRows.length,
+    };
   }
 
   private async createMedia(
@@ -113,9 +64,7 @@ export class IntelligenceService {
     mediaPath: string,
     metadata: Record<string, unknown>,
   ): Promise<InsertedMediaRecord> {
-    await this.ensureAgentsAndLocationOwnership([
-      { agent_id: payload.agent_id, location_id: payload.location_id },
-    ]);
+    await assertAgentExists(this.pool, payload.agent_id);
     return this.intelligenceRepository.insertMedia(payload, mediaPath, metadata);
   }
 
@@ -137,5 +86,40 @@ export class IntelligenceService {
       await deleteUploadedMedia(file.filename);
       throw error;
     }
+  }
+
+  async listAgentsWithLastLocation(
+    query: ListAgentsQueryDto = {},
+  ): Promise<PaginatedItemsResponse<AgentWithLastLocation>> {
+    const normalized = normalizePagination(query, PAGINATION_BOUNDS);
+    const items = await this.intelligenceRepository.findAllWithLastLocation({
+      limit: normalized.limit + 1,
+      offset: normalized.offset,
+      status: query.status,
+    });
+    return slicePaginated(items, normalized);
+  }
+
+  async getAgentReportSummary(agentId: string): Promise<AgentReportSummary> {
+    const summary = await this.intelligenceRepository.getAgentReportSummary(agentId);
+    if (!summary) {
+      throw new NotFoundException(ERROR_MESSAGES.AGENT_NOT_FOUND);
+    }
+    return summary;
+  }
+
+  async getAgentLocations(
+    agentId: string,
+    query: PaginationQueryDto = {},
+  ): Promise<PaginatedItemsResponse<AgentLocationRecord>> {
+    const normalized = normalizePagination(query, PAGINATION_BOUNDS);
+    const items = await this.intelligenceRepository.getLocationsPage(agentId, {
+      limit: normalized.limit + 1,
+      offset: normalized.offset,
+    });
+    if (items.length === 0) {
+      await assertAgentExists(this.pool, agentId);
+    }
+    return slicePaginated(items, normalized);
   }
 }

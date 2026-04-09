@@ -1,4 +1,4 @@
-import type { AgentLocationRecord } from '../api/contracts';
+import type { AgentLocationRecord } from '../../api';
 
 export function formatLocationEntry(entry: AgentLocationRecord): {
   coordinates: string;
@@ -7,7 +7,7 @@ export function formatLocationEntry(entry: AgentLocationRecord): {
   const latitude = entry.latitude;
   const longitude = entry.longitude;
   const hasValidCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
-  const timestampSource = entry.captured_at || entry.created_at;
+  const timestampSource = entry.created_at;
   const parsedDate = timestampSource ? new Date(timestampSource) : null;
   const timestamp =
     parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toLocaleTimeString() : '--:--:--';

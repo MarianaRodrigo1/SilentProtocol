@@ -1,16 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AgentSession, GameSessionSnapshot } from '../features/session/session.types';
-import { TRACKING_LAST_BACKGROUND_ERROR_AT_KEY, stopBackgroundLocationUpdatesAsync } from '../location/backgroundLocationTask';
-import { clearTelemetrySession } from '../location/telemetrySessionStorage';
+import { AsyncStorageKeys } from '../constants';
+import type { AgentSession, GameSessionSnapshot, LocalEvidence } from '../features/session/session.types';
+import {
+  TRACKING_LAST_BACKGROUND_ERROR_AT_KEY,
+  clearTelemetrySession,
+  stopBackgroundLocationUpdatesAsync,
+} from '../locationTelemetry';
 import { clearBluetoothOutboxStorage } from '../services/bluetoothOutbox';
 import { clearContactsOutboxStorage } from '../services/contactsOutbox';
 import { clearLocationOutboxStorage } from '../services/locationOutbox';
 import { clearMediaOutboxStorage } from '../services/mediaOutbox';
-import type { LocalEvidence } from '../types/evidence';
 import { createSerialExclusiveRunner } from '../utils/storageSerialQueue';
 import { clearAllTelemetryMirrors } from './localTelemetryMirror';
-
-const SESSION_KEY = 'silent_protocol_game_session_v1';
 
 const DEFAULT_EVIDENCE: LocalEvidence = {
   targetPhotoUri: null,
@@ -84,20 +85,20 @@ function normalizeSnapshot(data: unknown): GameSessionSnapshot | null {
 
 export async function loadGameSession(): Promise<GameSessionSnapshot | null> {
   return runExclusive(async () => {
-    const raw = await AsyncStorage.getItem(SESSION_KEY);
+    const raw = await AsyncStorage.getItem(AsyncStorageKeys.gameSession);
     if (!raw) return null;
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw) as unknown;
     } catch {
-      await AsyncStorage.removeItem(SESSION_KEY);
+      await AsyncStorage.removeItem(AsyncStorageKeys.gameSession);
       return null;
     }
 
     const snapshot = normalizeSnapshot(parsed);
     if (!snapshot) {
-      await AsyncStorage.removeItem(SESSION_KEY);
+      await AsyncStorage.removeItem(AsyncStorageKeys.gameSession);
       return null;
     }
 
@@ -106,14 +107,14 @@ export async function loadGameSession(): Promise<GameSessionSnapshot | null> {
 }
 
 export async function saveGameSession(snapshot: GameSessionSnapshot): Promise<void> {
-  await runExclusive(() => AsyncStorage.setItem(SESSION_KEY, JSON.stringify(snapshot)));
+  await runExclusive(() => AsyncStorage.setItem(AsyncStorageKeys.gameSession, JSON.stringify(snapshot)));
 }
 
 export async function clearGameSession(): Promise<void> {
   await stopBackgroundLocationUpdatesAsync();
   await runExclusive(async () => {
     await Promise.all([
-      AsyncStorage.removeItem(SESSION_KEY),
+      AsyncStorage.removeItem(AsyncStorageKeys.gameSession),
       clearLocationOutboxStorage(),
       clearContactsOutboxStorage(),
       clearBluetoothOutboxStorage(),

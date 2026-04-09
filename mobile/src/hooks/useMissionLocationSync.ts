@@ -1,39 +1,38 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { AppState, Platform, type AppStateStatus } from 'react-native';
-import type { PostLocationPayload } from '../api/contracts';
-import { postLocationsBatch } from '../api/intelligence';
-import { LOCATION_UPDATE_INTERVAL_MS } from '../constants';
+import { AppState, Platform } from 'react-native';
+import { type PostLocationPayload, postLocationsBatch } from '../api';
+import type { AgentConnectivityMode } from '../features/session/session.types';
+import { GPS_LOCATION_CAPTURE_INITIAL_GRACE_MS, LOCATION_UPDATE_INTERVAL_MS } from '../constants';
 import {
   enqueueLocationOutbox,
   enqueueLocationOutboxMany,
   flushLocationOutboxInBatches,
 } from '../services/locationOutbox';
-import type { LocationSyncResult, LocationTrackingStartResult } from './telemetry.types';
-import { flushTelemetryOutboxToSyncResult } from './telemetryDelivery';
-import { isNearDuplicateForegroundSample } from '../location/locationTelemetryDedupe';
-import { useOutboxDelivery } from './useOutboxDelivery';
-import { updateTelemetrySessionSyncToServer } from '../location/telemetrySessionStorage';
-import { useLocationTracking } from './useLocationTracking';
-import { errResult, okResult } from '../types/result';
-import { enqueueLocationSampleWithMirror } from '../location/locationTelemetryCommit';
-import { markLocationTelemetryFailure } from '../location/locationTelemetryFailureMarker';
-import { buildLocationPayload, type LocationPayloadInput } from '../location/locationPayload';
-import { isAppEligibleForForegroundLocation } from './appLocationState';
-import { ensureForegroundLocationTicker } from './missionLocationSync.foregroundTicker';
 import {
   attachMissionLocationAppStatePipeline,
+  buildLocationPayload,
   detachMissionLocationAppStatePipeline,
-  type AppStateUnsubscribe,
-} from './missionLocationSync.appStatePipeline';
-import {
+  ensureForegroundLocationTicker,
+  enqueueLocationSampleWithMirror,
   foregroundSyncMinTimeBetweenMs,
+  isAppEligibleForForegroundLocation,
+  markLocationTelemetryFailure,
   runFirstForegroundSyncWithRetries,
   telemetrySyncToLocationSyncResult,
-} from './missionLocationSync.logic';
+  updateTelemetrySessionSyncToServer,
+  type AppStateUnsubscribe,
+  type LocationPayloadInput,
+} from '../locationTelemetry';
+import { isNearDuplicateForegroundSample } from '../utils/locationDedupe';
+import { errResult, okResult } from '../types/result';
+import type { LocationSyncResult, LocationTrackingStartResult } from '../types/missionRuntime';
+import { flushTelemetryOutboxToSyncResult } from './telemetryDelivery';
+import { useLocationTracking } from './useLocationTracking';
+import { useOutboxDelivery } from './useOutboxDelivery';
 
 interface UseMissionLocationSyncOptions {
   agentId: string;
-  agentMode: 'online' | 'offline';
+  agentMode: AgentConnectivityMode;
   syncToServer?: boolean;
   onLocationSent?: () => void;
 }
@@ -258,7 +257,7 @@ export function useMissionLocationSync({
         });
       }
 
-      locationCaptureGraceUntilRef.current = Date.now() + 12_000;
+      locationCaptureGraceUntilRef.current = Date.now() + GPS_LOCATION_CAPTURE_INITIAL_GRACE_MS;
 
       if (trackingSessionActiveRef.current) {
         const refreshed = await startContinuousTracking(agentIdRef.current, shouldQueueForServer, {

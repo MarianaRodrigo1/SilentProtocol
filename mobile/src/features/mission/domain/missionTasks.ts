@@ -2,6 +2,13 @@ import { t } from '../../../i18n';
 
 export type TaskType = 'location' | 'camera' | 'contacts' | 'bluetooth';
 
+export interface TaskCompleteModalState {
+  visible: boolean;
+  taskNumber: number;
+}
+
+export type MissionLinkQuality = 'ok' | 'checking' | 'no_network' | 'no_backend';
+
 export interface Task {
   id: TaskType;
   number: number;

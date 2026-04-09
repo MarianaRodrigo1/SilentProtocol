@@ -1,6 +1,9 @@
 import type { FlushOutcome } from './useOutboxDelivery';
-import type { TelemetryDeliveryState, TelemetrySyncResult } from './telemetry.types';
-import type { PermissionFlowResult } from './permission.types';
+import type {
+  PermissionFlowResult,
+  TelemetryDeliveryState,
+  TelemetrySyncResult,
+} from '../types/missionRuntime';
 import { errResult, okResult } from '../types/result';
 
 function resolveTelemetryDelivery(

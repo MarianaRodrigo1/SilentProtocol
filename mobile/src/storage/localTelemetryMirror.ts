@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { PostLocationPayload } from '../api/contracts';
+import type { PostLocationPayload } from '../api';
+import { AsyncStorageKeys, LOCAL_TELEMETRY_MIRROR_MAX_LOCATIONS } from '../constants';
 import { createSerialExclusiveRunner } from '../utils/storageSerialQueue';
-
-const STORAGE_KEY = 'silent_protocol_local_telemetry_v1';
 
 export interface StoredLocationRecord {
   id: string;
@@ -10,7 +9,6 @@ export interface StoredLocationRecord {
   longitude: number;
   accuracy_meters: number | null;
   source: string;
-  captured_at: string;
   created_at: string;
 }
 
@@ -34,7 +32,7 @@ function emptyMirror(): AgentTelemetryMirror {
 
 async function readStore(): Promise<MirrorStore> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = await AsyncStorage.getItem(AsyncStorageKeys.localTelemetryMirror);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
     return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
@@ -47,7 +45,7 @@ async function readStore(): Promise<MirrorStore> {
 
 async function writeStore(store: MirrorStore): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    await AsyncStorage.setItem(AsyncStorageKeys.localTelemetryMirror, JSON.stringify(store));
   } catch {}
 }
 
@@ -59,8 +57,7 @@ function payloadsToRecords(payloads: PostLocationPayload[]): StoredLocationRecor
     longitude: p.longitude,
     accuracy_meters: p.accuracy_meters ?? null,
     source: p.source ?? 'gps',
-    captured_at: p.captured_at ?? now,
-    created_at: now,
+    created_at: p.created_at ?? now,
   }));
 }
 
@@ -80,7 +77,7 @@ export function appendLocationPayloads(agentId: string, payloads: PostLocationPa
       });
       store[key] = {
         ...prev,
-        locations: [...prev.locations, ...fresh].slice(-500),
+        locations: [...prev.locations, ...fresh].slice(-LOCAL_TELEMETRY_MIRROR_MAX_LOCATIONS),
       };
       await writeStore(store);
       return fresh.length;
@@ -133,7 +130,7 @@ export async function getTelemetryMirror(agentId: string): Promise<AgentTelemetr
 export async function clearAllTelemetryMirrors(): Promise<void> {
   await runExclusive(async () => {
     try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.removeItem(AsyncStorageKeys.localTelemetryMirror);
     } catch {}
   });
 }

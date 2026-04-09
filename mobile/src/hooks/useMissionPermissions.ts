@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 import { Alert, Linking } from 'react-native';
 import { t } from '../i18n';
-import type { PermissionFlowResult } from './permission.types';
+import type { PermissionFlowResult } from '../types/missionRuntime';
 
 export function useMissionPermissions() {
   const showError = useCallback(
     (
       message: string,
-      buttons?: Array<{ text: string; onPress?: () => void }>,
+      buttons?: { text: string; onPress?: () => void }[],
       title: string = t.mission.locationError,
     ) => Alert.alert(title, message, buttons),
     [],

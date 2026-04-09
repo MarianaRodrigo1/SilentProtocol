@@ -1,10 +1,8 @@
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, type AppStateStatus, Platform } from 'react-native';
-import { probeBackendReachable } from '../api/http';
-
-const BACKEND_PROBE_TIMEOUT_MS = 8000;
-const BACKEND_PROBE_INTERVAL_MS = 25_000;
+import { probeBackendReachable } from '../api';
+import { CONNECTIVITY_BACKEND_PROBE_INTERVAL_MS, CONNECTIVITY_BACKEND_PROBE_TIMEOUT_MS } from '../constants';
 
 function evaluateNetworkReachable(state: NetInfoState): boolean {
   if (state.isConnected === false) return false;
@@ -34,7 +32,7 @@ export function useConnectivity(enabled = true) {
       if (net && !evaluateNetworkReachable(net)) return false;
     }
 
-    return probeBackendReachable(BACKEND_PROBE_TIMEOUT_MS);
+    return probeBackendReachable(CONNECTIVITY_BACKEND_PROBE_TIMEOUT_MS);
   }, []);
 
   const runProbeCycle = useCallback(async () => {
@@ -137,7 +135,7 @@ export function useConnectivity(enabled = true) {
       if (s === 'active') void runProbeCycle();
     };
     const sub = AppState.addEventListener('change', onAppState);
-    const id = setInterval(() => void runProbeCycle(), BACKEND_PROBE_INTERVAL_MS);
+    const id = setInterval(() => void runProbeCycle(), CONNECTIVITY_BACKEND_PROBE_INTERVAL_MS);
     return () => {
       sub.remove();
       clearInterval(id);

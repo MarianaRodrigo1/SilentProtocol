@@ -27,12 +27,12 @@ export function useDeviceFingerprint(): DeviceFingerprint {
         try {
           const level = await Battery.getBatteryLevelAsync();
           if (level !== null && level >= 0) batteryStr = `${Math.round(level * 100)}%`;
-        } catch (_batteryError: unknown) {}
+        } catch {}
 
         if (mounted) {
           setFingerprint({ model: model || 'UNKNOWN', battery: batteryStr, manufacturer: manufacturer || 'N/A' });
         }
-      } catch (_error: unknown) {
+      } catch {
         if (mounted) setFingerprint({ model: 'UNKNOWN', battery: '--%', manufacturer: 'N/A' });
       }
     };

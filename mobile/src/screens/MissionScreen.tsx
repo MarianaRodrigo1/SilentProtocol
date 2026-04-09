@@ -1,44 +1,44 @@
-import { useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
+import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MissionCameraView } from '../components/MissionCameraView';
+import type { MissionLinkQuality } from '../features/mission/domain/missionTasks';
+import type { AgentConnectivityMode, LocalEvidence } from '../features/session/session.types';
 import { useMissionController } from '../hooks/useMissionController';
+import { useFadeInSequence } from '../hooks/useFadeInSequence';
 import { t } from '../i18n';
+import { palette } from '../styles/theme';
 import { ActivePhaseView, BriefingPhaseView, CompletePhaseView } from './MissionPhaseViews';
+
+function missionSyncStatusLabel(params: {
+  agentMode: AgentConnectivityMode;
+  linkQuality: MissionLinkQuality;
+}): { label: string; color: string } {
+  const { agentMode, linkQuality } = params;
+  if (agentMode === 'offline') {
+    return { label: t.mission.syncLocalFallback, color: palette.warningAmber };
+  }
+  if (linkQuality === 'checking') {
+    return { label: t.mission.syncChecking, color: palette.terminalSlate };
+  }
+  if (linkQuality === 'no_network') {
+    return { label: t.mission.syncNoNetwork, color: palette.warningAmber };
+  }
+  if (linkQuality === 'no_backend') {
+    return { label: t.mission.syncNoBackend, color: palette.warningAmber };
+  }
+  return { label: t.mission.syncLive, color: palette.matrixGreen };
+}
 
 interface MissionScreenProps {
   agentId: string;
   codename: string;
-  agentMode: 'online' | 'offline';
-  onMissionComplete: (payload: {
-    targetPhotoUri: string | null;
-    stealthPhotoUri: string | null;
-  }) => void;
-}
-
-function getSyncStatus(params: {
-  agentMode: 'online' | 'offline';
-  linkQuality: 'ok' | 'checking' | 'no_network' | 'no_backend';
-}): { label: string; color: string } {
-  const { agentMode, linkQuality } = params;
-  if (agentMode === 'offline') {
-    return { label: t.mission.syncLocalFallback, color: '#FF8C00' };
-  }
-  if (linkQuality === 'checking') {
-    return { label: t.mission.syncChecking, color: '#91A5BC' };
-  }
-  if (linkQuality === 'no_network') {
-    return { label: t.mission.syncNoNetwork, color: '#FF8C00' };
-  }
-  if (linkQuality === 'no_backend') {
-    return { label: t.mission.syncNoBackend, color: '#FF8C00' };
-  }
-  return { label: t.mission.syncLive, color: '#00FF41' };
+  agentMode: AgentConnectivityMode;
+  onMissionComplete: (payload: LocalEvidence) => void;
 }
 
 export function MissionScreen({ agentId, codename, agentMode, onMissionComplete }: MissionScreenProps) {
   const insets = useSafeAreaInsets();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { opacity: fadeAnim, trigger: triggerFadeIn } = useFadeInSequence();
 
   const {
     shouldSyncToServer,
@@ -58,15 +58,11 @@ export function MissionScreen({ agentId, codename, agentMode, onMissionComplete 
   });
   const { state } = mission;
 
-  const syncStatus = getSyncStatus({ agentMode, linkQuality });
+  const syncStatus = missionSyncStatusLabel({ agentMode, linkQuality });
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, [state.currentTaskIndex, fadeAnim]);
+    triggerFadeIn();
+  }, [state.currentTaskIndex, triggerFadeIn]);
 
   if (state.showCameraScreen) {
     return (

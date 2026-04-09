@@ -1,30 +1,28 @@
-import { apiMessages, requestJson, requestJsonBody, requestVoidBody } from './http';
+import { apiMessages, requestJson, requestJsonBody, withQuery } from './http';
 import type {
   AgentLocationRecord,
   AgentPayload,
   AgentRecord,
   AgentReportSummary,
   AgentStatus,
-  AgentVisualEvidenceRecord,
+  AgentWithLastLocation,
   PaginatedItemsResponse,
 } from './contracts';
 
-export type {
-  AgentLocationRecord,
-  AgentPayload,
-  AgentRecord,
-  AgentReportSummary,
-  AgentStatus,
-  AgentVisualEvidenceRecord,
-  PaginatedItemsResponse,
+export type ListAgentsOptions = {
+  limit?: number;
+  offset?: number;
+  status?: AgentStatus;
 };
 
-function toQueryString(options: { limit?: number; offset?: number } = {}): string {
-  const query = new URLSearchParams();
-  if (typeof options.limit === 'number') query.set('limit', String(options.limit));
-  if (typeof options.offset === 'number') query.set('offset', String(options.offset));
-  const serialized = query.toString();
-  return serialized ? `?${serialized}` : '';
+export async function listAgents(
+  options: ListAgentsOptions = {},
+): Promise<PaginatedItemsResponse<AgentWithLastLocation>> {
+  return requestJson<PaginatedItemsResponse<AgentWithLastLocation>>(
+    withQuery('/agents', { limit: options.limit, offset: options.offset, status: options.status }),
+    { method: 'GET' },
+    apiMessages.loadAgents,
+  );
 }
 
 export async function createAgent(payload: AgentPayload): Promise<AgentRecord> {
@@ -44,25 +42,14 @@ export async function getAgentLocations(
   options: { limit?: number; offset?: number } = {},
 ): Promise<PaginatedItemsResponse<AgentLocationRecord>> {
   return requestJson<PaginatedItemsResponse<AgentLocationRecord>>(
-    `/agents/${agentId}/locations${toQueryString(options)}`,
+    withQuery(`/agents/${agentId}/locations`, { limit: options.limit, offset: options.offset }),
     { method: 'GET' },
     apiMessages.loadAgentLocations,
   );
 }
 
-export async function getAgentVisualEvidence(
-  agentId: string,
-  options: { limit?: number; offset?: number } = {},
-): Promise<PaginatedItemsResponse<AgentVisualEvidenceRecord>> {
-  return requestJson<PaginatedItemsResponse<AgentVisualEvidenceRecord>>(
-    `/agents/${agentId}/visual-evidence${toQueryString(options)}`,
-    { method: 'GET' },
-    apiMessages.loadAgentVisualEvidence,
-  );
-}
-
-export async function updateAgentStatus(agentId: string, status: AgentStatus): Promise<void> {
-  await requestVoidBody(
+export async function updateAgentStatus(agentId: string, status: AgentStatus): Promise<AgentRecord> {
+  return requestJsonBody<AgentRecord>(
     `/agents/${agentId}/status`,
     'PATCH',
     { status },

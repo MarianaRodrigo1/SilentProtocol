@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { palette } from '../../styles/theme';
+import { crtMotion, crtScanlineStyles as styles } from '../../styles/crt';
 
-export const CRTScanlines: React.FC = React.memo(() => {
+const CRTScanlinesInner: React.FC = () => {
   const scanlineAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -10,28 +10,30 @@ export const CRTScanlines: React.FC = React.memo(() => {
       Animated.sequence([
         Animated.timing(scanlineAnim, {
           toValue: 1,
-          duration: 8000,
+          duration: crtMotion.scanlineSweepDurationMs,
           useNativeDriver: true,
         }),
         Animated.timing(scanlineAnim, {
           toValue: 0,
-          duration: 0,
+          duration: crtMotion.scanlineSweepResetMs,
           useNativeDriver: true,
         }),
       ]),
     ).start();
   }, [scanlineAnim]);
 
+  const { scanlineCount, movingScanlineTranslateMin, movingScanlineTranslateMax } = crtMotion;
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <View style={styles.scanlinesContainer}>
-        {Array.from({ length: 50 }).map((_, i) => (
+        {Array.from({ length: scanlineCount }).map((_, i) => (
           <View
             key={i}
             style={[
               styles.scanline,
               {
-                top: `${(i / 50) * 100}%`,
+                top: `${(i / scanlineCount) * 100}%`,
               },
             ]}
           />
@@ -45,7 +47,7 @@ export const CRTScanlines: React.FC = React.memo(() => {
               {
                 translateY: scanlineAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [-100, 1000],
+                  outputRange: [movingScanlineTranslateMin, movingScanlineTranslateMax],
                 }),
               },
             ],
@@ -56,39 +58,7 @@ export const CRTScanlines: React.FC = React.memo(() => {
       <View style={styles.crtGlow} />
     </View>
   );
-});
+};
 
-const styles = StyleSheet.create({
-  scanlinesContainer: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
-  },
-  scanline: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: palette.scanline,
-  },
-  movingScanline: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: palette.matrixGreenGlow,
-    shadowColor: palette.matrixGreen,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-  },
-  vignette: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
-    borderWidth: 60,
-    borderColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  crtGlow: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: palette.crtGlow,
-  },
-});
+export const CRTScanlines = React.memo(CRTScanlinesInner);
+CRTScanlines.displayName = 'CRTScanlines';

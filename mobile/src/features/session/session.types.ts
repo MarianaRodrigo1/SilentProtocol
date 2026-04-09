@@ -1,9 +1,14 @@
-import type { LocalEvidence } from '../../types/evidence';
+export interface LocalEvidence {
+  targetPhotoUri: string | null;
+  stealthPhotoUri: string | null;
+}
+
+export type AgentConnectivityMode = 'online' | 'offline';
 
 export interface AgentSession {
   id: string;
   codename: string;
-  mode: 'online' | 'offline';
+  mode: AgentConnectivityMode;
 }
 
 export interface GameSessionSnapshot {

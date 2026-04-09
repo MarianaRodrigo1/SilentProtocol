@@ -1,19 +1,36 @@
-import type { PostLocationPayload } from '../api/contracts';
-import { LOCATION_TELEMETRY_DEDUPE_WINDOW_MS } from './locationTelemetryConfig';
-import { haversineDistanceMeters } from '../utils/geo';
+import type { PostLocationPayload } from '../api';
+import {
+  GPS_DEDUPE_MAX_DISTANCE_M,
+  GPS_DEDUPE_MIN_DISTANCE_M,
+  LOCATION_TELEMETRY_DEDUPE_WINDOW_MS,
+} from '../constants';
 
-const LOCATION_DEDUPE_MIN_DISTANCE_M = 8;
-const LOCATION_DEDUPE_MAX_DISTANCE_M = 100;
+function haversineDistanceMeters(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): number {
+  const earthRadius = 6371_000;
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const centralAngle = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  return earthRadius * centralAngle;
+}
 
 function locationDedupeDistanceThresholdMeters(accuracyMeters?: number | null): number {
   const a =
     typeof accuracyMeters === 'number' && Number.isFinite(accuracyMeters) && accuracyMeters > 0
       ? accuracyMeters
       : 25;
-  return Math.max(LOCATION_DEDUPE_MIN_DISTANCE_M, Math.min(LOCATION_DEDUPE_MAX_DISTANCE_M, a * 1.5));
+  return Math.max(GPS_DEDUPE_MIN_DISTANCE_M, Math.min(GPS_DEDUPE_MAX_DISTANCE_M, a * 1.5));
 }
 
-function locationCapturedAtMs(value?: string): number | null {
+function locationCreatedAtMs(value?: string): number | null {
   if (!value) return null;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -43,8 +60,8 @@ export function areRedundantLocationOutboxEntries(a: PostLocationPayload, b: Pos
   if (a.event_id === b.event_id) return true;
   if ((a.source ?? null) !== (b.source ?? null)) return false;
 
-  const aMs = locationCapturedAtMs(a.captured_at);
-  const bMs = locationCapturedAtMs(b.captured_at);
+  const aMs = locationCreatedAtMs(a.created_at);
+  const bMs = locationCreatedAtMs(b.created_at);
   if (aMs === null || bMs === null) {
     return (
       a.latitude === b.latitude &&

@@ -4,11 +4,7 @@ import { diskStorage } from 'multer';
 import { mkdirSync } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import {
-  ALLOWED_MEDIA_MIME_PREFIXES,
-  MAX_MEDIA_FILE_BYTES,
-  UPLOADS_DIR,
-} from '../common/constants';
+import { ALLOWED_IMAGE_MIME_PREFIXES, MAX_MEDIA_FILE_BYTES, UPLOADS_DIR } from '../common/constants';
 import { ERROR_MESSAGES } from '../common/error-messages';
 
 export const intelligenceMediaUploadOptions: MulterOptions = {
@@ -26,7 +22,7 @@ export const intelligenceMediaUploadOptions: MulterOptions = {
     fileSize: MAX_MEDIA_FILE_BYTES,
   },
   fileFilter: (_req, file, callback) => {
-    const isAllowed = ALLOWED_MEDIA_MIME_PREFIXES.some((prefix) => file.mimetype.startsWith(prefix));
+    const isAllowed = ALLOWED_IMAGE_MIME_PREFIXES.some((prefix) => file.mimetype.startsWith(prefix));
     if (!isAllowed) {
       callback(new BadRequestException(ERROR_MESSAGES.MEDIA_FILE_TYPE_INVALID), false);
       return;

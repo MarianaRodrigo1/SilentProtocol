@@ -8,11 +8,7 @@ export class CreateAgentDto {
   @MaxLength(80)
   codename!: string;
 
-  @ApiProperty({ example: true })
-  @IsBoolean()
-  biometric_confirmed!: boolean;
-
-  @ApiProperty({ example: true })
+  @ApiProperty({ example: true, description: 'Mission terms / protocol acknowledgment.' })
   @IsBoolean()
   terms_accepted!: boolean;
 }

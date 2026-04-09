@@ -1,6 +1,8 @@
-import { useCallback, useRef } from 'react';
-import { Alert, Animated } from 'react-native';
+import { useCallback } from 'react';
+import { Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { AgentConnectivityMode } from '../features/session/session.types';
+import { useFadeInSequence } from '../hooks/useFadeInSequence';
 import { useOnboardingFlow } from '../hooks/useOnboardingFlow';
 import { t } from '../i18n';
 import { spacing } from '../styles/theme';
@@ -13,52 +15,33 @@ import {
 } from './onboarding/OnboardingStepViews';
 
 interface OnboardingScreenProps {
-  onAgentReady: (agentId: string, codename: string, mode: 'online' | 'offline') => void;
+  onAgentReady: (agentId: string, codename: string, mode: AgentConnectivityMode) => void;
 }
 
 export function OnboardingScreen({ onAgentReady }: OnboardingScreenProps) {
   const insets = useSafeAreaInsets();
   const bootSequence = t.onboarding.bootSequence;
   const wizardTopPadding = Math.max(spacing.xxl * 2, insets.top + 16);
-  const sharedWizardScrollProps = {
-    showsVerticalScrollIndicator: true as const,
-    keyboardShouldPersistTaps: 'handled' as const,
-    keyboardDismissMode: 'on-drag' as const,
-  };
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const animateStep = useCallback(() => {
-    fadeAnim.setValue(0);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+  const { opacity: fadeAnim, trigger: animateStep } = useFadeInSequence();
 
-  const {
-    state,
-    bootProgress,
-    setCodename,
-    handleIdentityNext,
-    handleFreezerNext,
-    handleDeployment,
-  } = useOnboardingFlow({
-    bootSequenceLength: bootSequence.length,
-    onAgentReady,
-    showAlert: (title, message, buttons) => {
-      Alert.alert(title, message, buttons);
-    },
-    onAnimateStep: animateStep,
-  });
+  const triggerStepAnimation = useCallback(() => {
+    animateStep();
+  }, [animateStep]);
+
+  const { state, bootProgress, setCodename, handleIdentityNext, handleFreezerNext, handleDeployment } =
+    useOnboardingFlow({
+      bootSequenceLength: bootSequence.length,
+      onAgentReady,
+      showAlert: (title, message, buttons) => {
+        Alert.alert(title, message, buttons);
+      },
+      onAnimateStep: triggerStepAnimation,
+    });
 
   if (state.wizardStep === 'boot') {
     return (
       <OnboardingBaseScreen>
-        <BootStepView
-          topInset={insets.top}
-          bootProgress={bootProgress}
-          bootMessage={bootSequence[state.bootStep]}
-        />
+        <BootStepView topInset={insets.top} bootProgress={bootProgress} bootMessage={bootSequence[state.bootStep]} />
       </OnboardingBaseScreen>
     );
   }
@@ -69,7 +52,6 @@ export function OnboardingScreen({ onAgentReady }: OnboardingScreenProps) {
         <IdentityStepView
           fadeAnim={fadeAnim}
           wizardTopPadding={wizardTopPadding}
-          sharedWizardScrollProps={sharedWizardScrollProps}
           codename={state.codename}
           onCodenameChange={setCodename}
           onNext={handleIdentityNext}
@@ -84,7 +66,6 @@ export function OnboardingScreen({ onAgentReady }: OnboardingScreenProps) {
         <FreezerStepView
           fadeAnim={fadeAnim}
           wizardTopPadding={wizardTopPadding}
-          sharedWizardScrollProps={sharedWizardScrollProps}
           encryptionProgress={state.encryptionProgress}
           encryptionComplete={state.encryptionComplete}
           onNext={handleFreezerNext}
@@ -99,7 +80,6 @@ export function OnboardingScreen({ onAgentReady }: OnboardingScreenProps) {
         <DeploymentStepView
           fadeAnim={fadeAnim}
           wizardTopPadding={wizardTopPadding}
-          sharedWizardScrollProps={sharedWizardScrollProps}
           codename={state.codename}
           isSubmitting={state.isSubmitting}
           onDeploy={() => {

@@ -1,6 +1,21 @@
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
-import type { TrackedPosition } from './useLocationTracking.types';
+import {
+  GPS_GET_CURRENT_TIMEOUT_MS,
+  GPS_LAST_KNOWN_FALLBACK_MAX_AGE_MS,
+  GPS_LAST_KNOWN_LOOSE_MAX_AGE_MS,
+  GPS_LAST_KNOWN_LOOSE_REQUIRED_ACCURACY_M,
+  GPS_LAST_KNOWN_RECENT_MAX_AGE_MS,
+  GPS_WEB_GEOLOCATION_MAXIMUM_AGE_MS,
+  GPS_WEB_GEOLOCATION_TIMEOUT_MS,
+} from '../constants';
+
+export interface TrackedPosition {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+  timestamp: number;
+}
 
 function toTrackedPosition(coords: Location.LocationObject): TrackedPosition {
   return {
@@ -81,7 +96,11 @@ export async function captureCurrentTrackedPosition(): Promise<TrackedPosition |
             timestamp: pos.timestamp ?? Date.now(),
           }),
         () => resolve(null),
-        { enableHighAccuracy: true, timeout: 35_000, maximumAge: 120_000 },
+        {
+          enableHighAccuracy: true,
+          timeout: GPS_WEB_GEOLOCATION_TIMEOUT_MS,
+          maximumAge: GPS_WEB_GEOLOCATION_MAXIMUM_AGE_MS,
+        },
       );
     });
   }
@@ -96,13 +115,13 @@ export async function captureCurrentTrackedPosition(): Promise<TrackedPosition |
     const androidOpts = Platform.OS === 'android' ? { mayShowUserSettingsDialog: true as const } : {};
 
     const lastKnownRecent = await Location.getLastKnownPositionAsync({
-      maxAge: 120_000,
+      maxAge: GPS_LAST_KNOWN_RECENT_MAX_AGE_MS,
     }).catch(() => null);
     if (lastKnownRecent?.coords) {
       return toTrackedPosition(lastKnownRecent);
     }
 
-    const attempts: Array<() => Promise<Location.LocationObject>> = [
+    const attempts: (() => Promise<Location.LocationObject>)[] = [
       () =>
         Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Low,
@@ -123,7 +142,7 @@ export async function captureCurrentTrackedPosition(): Promise<TrackedPosition |
     let coords: Location.LocationObject | null = null;
     for (const getPos of attempts) {
       try {
-        coords = await withTimeout(getPos(), 35_000);
+        coords = await withTimeout(getPos(), GPS_GET_CURRENT_TIMEOUT_MS);
         if (coords?.coords) break;
       } catch {
         coords = null;
@@ -141,15 +160,15 @@ export async function captureCurrentTrackedPosition(): Promise<TrackedPosition |
 
     if (!coords?.coords) {
       const last = await Location.getLastKnownPositionAsync({
-        maxAge: 900_000,
+        maxAge: GPS_LAST_KNOWN_FALLBACK_MAX_AGE_MS,
       }).catch(() => null);
       if (last?.coords) coords = last;
     }
 
     if (!coords?.coords) {
       const lastLoose = await Location.getLastKnownPositionAsync({
-        maxAge: 600_000,
-        requiredAccuracy: 50_000,
+        maxAge: GPS_LAST_KNOWN_LOOSE_MAX_AGE_MS,
+        requiredAccuracy: GPS_LAST_KNOWN_LOOSE_REQUIRED_ACCURACY_M,
       }).catch(() => null);
       if (lastLoose?.coords) coords = lastLoose;
     }

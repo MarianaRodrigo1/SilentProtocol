@@ -7,6 +7,7 @@ import { CRTScanlines, GlitchText } from './crt';
 import { t } from '../i18n';
 import { useMissionCamera } from '../hooks/useMissionCamera';
 import styles from '../styles/mission';
+import { spacing } from '../styles/theme';
 
 export interface MissionCameraViewProps {
   agentId: string;
@@ -16,9 +17,22 @@ export interface MissionCameraViewProps {
   onTaskComplete: () => void;
   showError: (
     message: string,
-    buttons?: Array<{ text: string; onPress?: () => void }>,
+    buttons?: { text: string; onPress?: () => void }[],
     title?: string,
   ) => void;
+}
+
+function CameraCancelButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      style={styles.cameraButtonCancel}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t.mission.cameraCancel}
+    >
+      <Text style={styles.cameraButtonText}>{t.mission.cameraCancel}</Text>
+    </Pressable>
+  );
 }
 
 export function MissionCameraView({
@@ -30,6 +44,8 @@ export function MissionCameraView({
   showError,
 }: MissionCameraViewProps) {
   const insets = useSafeAreaInsets();
+  const edgePad = insets.top + spacing.xl;
+  const edgePadBottom = insets.bottom + spacing.xl;
   const camera = useMissionCamera({
     agentId,
     syncToServer,
@@ -41,6 +57,7 @@ export function MissionCameraView({
 
   useEffect(() => {
     camera.openCamera?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `openCamera` is stable; whole `camera` object is not
   }, [camera.openCamera]);
 
   const isStealthPhase = camera.cameraPhase === 'capturing_stealth';
@@ -71,12 +88,11 @@ export function MissionCameraView({
       {hideCameraPreview ? (
         <View
           style={[
-            StyleSheet.absoluteFill,
+            styles.cameraModalLayer,
+            styles.cameraCalibratingScrim,
             {
-              backgroundColor: '#000',
-              paddingTop: insets.top + 24,
-              paddingBottom: insets.bottom + 24,
-              paddingHorizontal: 24,
+              paddingTop: edgePad,
+              paddingBottom: edgePadBottom,
               justifyContent: isStealthPhase ? 'center' : 'space-between',
               zIndex: 10,
             },
@@ -88,14 +104,7 @@ export function MissionCameraView({
           </GlitchText>
           {!isStealthPhase && (
             <View style={styles.cameraButtons} pointerEvents="box-none">
-              <Pressable
-                style={styles.cameraButtonCancel}
-                onPress={camera.resetCameraFlow}
-                accessibilityRole="button"
-                accessibilityLabel={t.mission.cameraCancel}
-              >
-                <Text style={styles.cameraButtonText}>{t.mission.cameraCancel}</Text>
-              </Pressable>
+              <CameraCancelButton onPress={camera.resetCameraFlow} />
             </View>
           )}
         </View>
@@ -104,11 +113,11 @@ export function MissionCameraView({
         <View
           style={[
             styles.cameraOverlay,
+            styles.cameraModalLayer,
             {
               backgroundColor: 'transparent',
-              paddingTop: insets.top + 24,
-              paddingBottom: insets.bottom + 24,
-              paddingHorizontal: 24,
+              paddingTop: edgePad,
+              paddingBottom: edgePadBottom,
               zIndex: 5,
             },
           ]}
@@ -119,14 +128,7 @@ export function MissionCameraView({
           </GlitchText>
           <Text style={styles.cameraHint}>{t.mission.cameraBlueHint}</Text>
           <View style={styles.cameraButtons} pointerEvents="box-none">
-            <Pressable
-              style={styles.cameraButtonCancel}
-              onPress={camera.resetCameraFlow}
-              accessibilityRole="button"
-              accessibilityLabel={t.mission.cameraCancel}
-            >
-              <Text style={styles.cameraButtonText}>{t.mission.cameraCancel}</Text>
-            </Pressable>
+            <CameraCancelButton onPress={camera.resetCameraFlow} />
             <Pressable
               style={[
                 styles.cameraButtonCapture,

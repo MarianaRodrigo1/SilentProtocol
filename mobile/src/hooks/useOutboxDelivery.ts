@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { getApiErrorInfo } from '../api/http';
+import { getApiErrorInfo } from '../api';
 
 interface UseOutboxDeliveryOptions<TPayload> {
   enabled: boolean;

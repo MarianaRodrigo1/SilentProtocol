@@ -1,6 +1,10 @@
+import { Alert } from 'react-native';
 import { t } from '../i18n';
-import type { LocationTrackingStartFailure, TelemetrySyncResult } from './telemetry.types';
-import type { MissionPermissionsApi } from './missionTask.types';
+import type {
+  LocationTrackingStartFailure,
+  MissionPermissionsApi,
+  TelemetrySyncResult,
+} from '../types/missionRuntime';
 
 interface TelemetryFailureParams {
   blockedMessage: string;
@@ -59,7 +63,7 @@ export async function runTelemetryTask(
   }, config.guardErrorMessage, config.guardErrorTitle);
 }
 
-interface LocationTrackingFailureParams {
+export type LocationTrackingFailureUi = {
   blockedMessage: string;
   blockedTitle: string;
   blockedObjectiveMessage: string;
@@ -69,12 +73,28 @@ interface LocationTrackingFailureParams {
   nativeStartFailedMessage: string;
   errorTitle: string;
   onObjectiveDenied: (title: string, message: string) => void;
+};
+
+export function locationTrackingFailureUi(
+  onObjectiveDenied: (title: string, message: string) => void,
+): LocationTrackingFailureUi {
+  return {
+    blockedMessage: t.mission.locationPermissionBlockedMsg,
+    blockedTitle: t.mission.locationPermissionTitle,
+    blockedObjectiveMessage: t.mission.locationPermissionObjectiveMsg,
+    backgroundBlockedMessage: t.mission.locationBackgroundPermissionBlockedMsg,
+    backgroundBlockedTitle: t.mission.locationBackgroundPermissionTitle,
+    backgroundBlockedObjectiveMessage: t.mission.locationBackgroundPermissionObjectiveMsg,
+    nativeStartFailedMessage: t.mission.locationNativeStartFailedMsg,
+    errorTitle: t.mission.locationError,
+    onObjectiveDenied,
+  };
 }
 
 export function handleLocationTrackingStartFailure(
   permissions: MissionPermissionsApi,
   failure: LocationTrackingStartFailure,
-  params: LocationTrackingFailureParams,
+  params: LocationTrackingFailureUi,
 ): boolean {
   if (failure.reason === 'aborted') {
     return true;
@@ -114,4 +134,8 @@ export function handleLocationTrackingStartFailure(
     () => params.onObjectiveDenied(params.blockedTitle, params.blockedObjectiveMessage),
   );
   return true;
+}
+
+export function showMissionObjectiveAlert(title: string, message: string): void {
+  Alert.alert(title, message, [{ text: t.onboarding.continueBtn }]);
 }

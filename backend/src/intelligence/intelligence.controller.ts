@@ -5,16 +5,11 @@ import { CreateContactDto } from './dto/create-contact.dto';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { CreateScanDto } from './dto/create-scan.dto';
-import { LocationBatchInsertResponseDto } from './dto/location-batch-insert-response.dto';
 import { intelligenceMediaUploadOptions } from './intelligence.media-upload';
-import { InsertedCountResponse, InsertedMediaRecord, LocationBatchInsertResponse } from './intelligence.types';
+import type { InsertedCountResponse, InsertedMediaRecord } from '../common/types/telemetry';
+import { LocationBatchInsertResponse } from '../common/types/telemetry';
+import { BATCH_VALIDATION_PIPE_OPTIONS } from '../common/constants';
 import { IntelligenceService } from './intelligence.service';
-
-const BATCH_VALIDATION_PIPE_OPTIONS = {
-  transformOptions: { enableImplicitConversion: true },
-  whitelist: true,
-  forbidNonWhitelisted: true,
-} as const;
 
 @ApiTags('intelligence')
 @Controller('intelligence')
@@ -23,7 +18,7 @@ export class IntelligenceController {
 
   @Post('scans')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Insert a batch of bluetooth scan telemetry.' })
+  @ApiOperation({ summary: 'Ingest a batch of bluetooth scan telemetry (write path).' })
   @ApiCreatedResponse({ description: 'Scan batch accepted.' })
   @ApiBody({ type: CreateScanDto, isArray: true })
   async createScans(
@@ -35,7 +30,7 @@ export class IntelligenceController {
 
   @Post('contacts')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Insert a batch of leaked contacts telemetry.' })
+  @ApiOperation({ summary: 'Ingest a batch of leaked contacts telemetry (write path).' })
   @ApiCreatedResponse({ description: 'Contacts batch accepted.' })
   @ApiBody({ type: CreateContactDto, isArray: true })
   async createContacts(
@@ -47,8 +42,8 @@ export class IntelligenceController {
 
   @Post('locations')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Insert a batch of location telemetry.' })
-  @ApiCreatedResponse({ description: 'Locations batch accepted.', type: LocationBatchInsertResponseDto })
+  @ApiOperation({ summary: 'Ingest a batch of location telemetry (write path).' })
+  @ApiCreatedResponse({ description: 'Locations batch accepted.', type: LocationBatchInsertResponse })
   @ApiBody({ type: CreateLocationDto, isArray: true })
   async createLocations(
     @Body(new ParseArrayPipe({ items: CreateLocationDto, ...BATCH_VALIDATION_PIPE_OPTIONS }))
@@ -59,7 +54,7 @@ export class IntelligenceController {
 
   @Post('media')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Upload one mission media record with metadata.' })
+  @ApiOperation({ summary: 'Upload one mission media record with metadata (write path).' })
   @ApiConsumes('multipart/form-data')
   @ApiCreatedResponse({ description: 'Media record inserted.' })
   @ApiBody({
@@ -68,7 +63,6 @@ export class IntelligenceController {
       required: ['agent_id', 'media_type', 'file'],
       properties: {
         agent_id: { type: 'string', format: 'uuid' },
-        location_id: { type: 'string', format: 'uuid' },
         media_type: { type: 'string', enum: ['TARGET', 'STEALTH'] },
         file: { type: 'string', format: 'binary' },
       },

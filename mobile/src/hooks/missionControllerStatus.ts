@@ -1,20 +1,19 @@
-import { updateAgentStatus } from '../api/agents';
-import { isRetryableApiError } from '../api/http';
-import { delay } from '../utils/async';
+import { isRetryableApiError, updateAgentStatus } from '../api';
+import { AGENT_STATUS_SYNC_BACKOFF_BASE_MS, AGENT_STATUS_SYNC_MAX_ATTEMPTS } from '../constants';
+import { delay } from '../utils/promiseUtils';
 
 export async function syncAgentStatusBestEffort(
   agentId: string,
-  status: 'MISSION_ACTIVE' | 'MISSION_COMPLETE',
+  status: 'ACTIVE' | 'COMPLETED',
 ): Promise<void> {
-  const maxAttempts = 3;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  for (let attempt = 1; attempt <= AGENT_STATUS_SYNC_MAX_ATTEMPTS; attempt += 1) {
     try {
       await updateAgentStatus(agentId, status);
       return;
     } catch (error: unknown) {
       if (!isRetryableApiError(error)) return;
-      if (attempt === maxAttempts) return;
-      await delay(600 * attempt);
+      if (attempt === AGENT_STATUS_SYNC_MAX_ATTEMPTS) return;
+      await delay(AGENT_STATUS_SYNC_BACKOFF_BASE_MS * attempt);
     }
   }
 }

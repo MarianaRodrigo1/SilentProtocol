@@ -1,16 +1,10 @@
-import { StatusBar } from 'expo-status-bar';
 import { Animated, Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { CRTScanlines, GlitchText } from '../components/crt';
+import { CrtScreenShell } from '../components/layout/CrtScreenShell';
+import { GlitchText } from '../components/crt';
 import { TaskCompleteModal } from '../components/TaskCompleteModal';
-import type { Task } from '../features/mission/domain/missionTasks';
+import type { Task, TaskCompleteModalState } from '../features/mission/domain/missionTasks';
 import { t } from '../i18n';
 import styles from '../styles/mission';
-
-interface TaskModalState {
-  visible: boolean;
-  taskNumber: number;
-}
 
 interface BriefingPhaseViewProps {
   codename: string;
@@ -20,89 +14,69 @@ interface BriefingPhaseViewProps {
 
 export function BriefingPhaseView({ codename, topPadding, onStartMission }: BriefingPhaseViewProps) {
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <CRTScanlines />
-        <ScrollView
-          style={styles.briefingScrollView}
-          contentContainerStyle={[styles.briefingContainer, { paddingTop: topPadding }]}
-          showsVerticalScrollIndicator
-          keyboardShouldPersistTaps="handled"
-        >
-          <GlitchText style={styles.briefingHeader} glitchIntensity="medium">
-            {t.mission.briefingHeader}
-          </GlitchText>
+    <CrtScreenShell>
+      <ScrollView
+        style={styles.briefingScrollView}
+        contentContainerStyle={[styles.briefingContainer, { paddingTop: topPadding }]}
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
+        <GlitchText style={styles.briefingHeader} glitchIntensity="medium">
+          {t.mission.briefingHeader}
+        </GlitchText>
 
-          <View style={styles.briefingCard}>
-            <Text style={styles.briefingAgentLabel}>{t.mission.briefingAgentLabel}</Text>
-            <Text style={styles.briefingAgentName}>{codename}</Text>
-            <Text style={styles.briefingStatus}>{t.mission.briefingStatus}</Text>
-          </View>
+        <View style={styles.briefingCard}>
+          <Text style={styles.briefingAgentLabel}>{t.mission.briefingAgentLabel}</Text>
+          <Text style={styles.briefingAgentName}>{codename}</Text>
+          <Text style={styles.briefingStatus}>{t.mission.briefingStatus}</Text>
+        </View>
 
-          <View style={styles.briefingCard}>
-            <Text style={styles.briefingTitle}>{t.mission.briefingMissionParams}</Text>
-            <Text style={styles.briefingText}>{t.mission.briefingParam1}</Text>
-            <Text style={styles.briefingText}>{t.mission.briefingParam2}</Text>
-            <Text style={[styles.briefingText, { marginTop: 6, marginBottom: 10, color: '#888888' }]}>
-              {t.mission.briefingParamClassified}
-            </Text>
-            {Platform.OS === 'web' ? (
-              <Text style={[styles.briefingText, { marginBottom: 10, color: '#c9a227' }]}>
-                {t.mission.briefingWebLocationNote}
-              </Text>
-            ) : null}
+        <View style={styles.briefingCard}>
+          <Text style={styles.briefingTitle}>{t.mission.briefingMissionParams}</Text>
+          <Text style={styles.briefingText}>{t.mission.briefingParam1}</Text>
+          <Text style={styles.briefingText}>{t.mission.briefingParam2}</Text>
+          <Text style={styles.briefingTextClassified}>{t.mission.briefingParamClassified}</Text>
+          {Platform.OS === 'web' ? (
+            <Text style={styles.briefingWebNote}>{t.mission.briefingWebLocationNote}</Text>
+          ) : null}
 
-            <Text style={[styles.briefingTitle, { color: '#91A5BC', marginBottom: 10 }]}>
-              {t.mission.briefingProtocol}
-            </Text>
-            <Text style={styles.briefingText}>{t.mission.protocolAwait}</Text>
-            <Text style={styles.briefingText}>{t.mission.protocolExecute}</Text>
-            <Text style={styles.briefingText}>{t.mission.protocolStandBy}</Text>
-          </View>
+          <Text style={styles.briefingProtocolTitle}>{t.mission.briefingProtocol}</Text>
+          <Text style={styles.briefingText}>{t.mission.protocolAwait}</Text>
+          <Text style={styles.briefingText}>{t.mission.protocolExecute}</Text>
+          <Text style={styles.briefingText}>{t.mission.protocolStandBy}</Text>
+        </View>
 
-          <Pressable style={styles.briefingButton} onPress={onStartMission}>
-            <Text style={styles.briefingButtonText}>{t.mission.briefingStartMission}</Text>
-          </Pressable>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+        <Pressable style={styles.briefingButton} onPress={onStartMission}>
+          <Text style={styles.briefingButtonText}>{t.mission.briefingStartMission}</Text>
+        </Pressable>
+      </ScrollView>
+    </CrtScreenShell>
   );
 }
 
 interface CompletePhaseViewProps {
-  taskModal: TaskModalState;
+  taskModal: TaskCompleteModalState;
   stealthLevel: number;
   onDismissTaskModal: () => void;
 }
 
-export function CompletePhaseView({
-  taskModal,
-  stealthLevel,
-  onDismissTaskModal,
-}: CompletePhaseViewProps) {
+export function CompletePhaseView({ taskModal, stealthLevel, onDismissTaskModal }: CompletePhaseViewProps) {
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <CRTScanlines />
-        <TaskCompleteModal
-          visible={taskModal.visible}
-          taskNumber={taskModal.taskNumber}
-          onDismiss={onDismissTaskModal}
-        />
-        <View style={styles.completeContainer}>
-          <GlitchText style={styles.completeHeader} glitchIntensity="high">
-            {t.mission.completeHeader}
-          </GlitchText>
-          <Text style={styles.completeText}>{t.mission.completeTransmitting}</Text>
-          <Text style={styles.completeText}>{t.mission.completeStealthLevel(stealthLevel)}</Text>
-          <Text style={[styles.completeText, { marginTop: 24, color: '#91A5BC' }]}>
-            {t.mission.completeSyncing}
-          </Text>
-        </View>
-      </SafeAreaView>
-    </View>
+    <CrtScreenShell>
+      <TaskCompleteModal
+        visible={taskModal.visible}
+        taskNumber={taskModal.taskNumber}
+        onDismiss={onDismissTaskModal}
+      />
+      <View style={styles.completeContainer}>
+        <GlitchText style={styles.completeHeader} glitchIntensity="high">
+          {t.mission.completeHeader}
+        </GlitchText>
+        <Text style={styles.completeText}>{t.mission.completeTransmitting}</Text>
+        <Text style={styles.completeText}>{t.mission.completeStealthLevel(stealthLevel)}</Text>
+        <Text style={styles.completeTextSyncNote}>{t.mission.completeSyncing}</Text>
+      </View>
+    </CrtScreenShell>
   );
 }
 
@@ -111,7 +85,7 @@ interface ActivePhaseViewProps {
   syncStatusLabel: string;
   syncStatusColor: string;
   codename: string;
-  taskModal: TaskModalState;
+  taskModal: TaskCompleteModalState;
   onDismissTaskModal: () => void;
   onTaskModalDismissCallback: (taskNumber: number) => void;
   completedTasksCount: number;
@@ -146,87 +120,81 @@ export function ActivePhaseView({
   const totalSteps = tasks.length;
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <CRTScanlines />
-        <TaskCompleteModal
-          visible={taskModal.visible}
-          taskNumber={taskModal.taskNumber}
-          onDismiss={onDismissTaskModal}
-          onDismissCallback={onTaskModalDismissCallback}
-        />
-        <View style={[styles.header, { paddingTop: topPadding }]}>
-          <GlitchText style={styles.headerTitle} glitchIntensity="low">
-            {t.mission.headerTitle}
-          </GlitchText>
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerAgent}>{t.mission.headerAgent(codename)}</Text>
-            <Text style={styles.headerStatus}>
-              {t.mission.headerSyncAck(completedTasksCount)}  {t.mission.headerStep(currentTask.number, totalSteps)}
-            </Text>
-          </View>
-          <Text style={[styles.headerSyncStrip, { color: syncStatusColor }]}>{syncStatusLabel}</Text>
+    <CrtScreenShell>
+      <TaskCompleteModal
+        visible={taskModal.visible}
+        taskNumber={taskModal.taskNumber}
+        onDismiss={onDismissTaskModal}
+        onDismissCallback={onTaskModalDismissCallback}
+      />
+      <View style={[styles.header, { paddingTop: topPadding }]}>
+        <GlitchText style={styles.headerTitle} glitchIntensity="low">
+          {t.mission.headerTitle}
+        </GlitchText>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerAgent}>{t.mission.headerAgent(codename)}</Text>
+          <Text style={styles.headerStatus}>
+            {t.mission.headerSyncAck(completedTasksCount)} {t.mission.headerStep(currentTask.number, totalSteps)}
+          </Text>
         </View>
-        <ScrollView
-          style={styles.taskScrollView}
-          contentContainerStyle={styles.taskContainer}
-          showsVerticalScrollIndicator
-          keyboardShouldPersistTaps="handled"
-        >
-          {isDecrypting ? (
+        <Text style={[styles.headerSyncStrip, { color: syncStatusColor }]}>{syncStatusLabel}</Text>
+      </View>
+      <ScrollView
+        style={styles.taskScrollView}
+        contentContainerStyle={styles.taskContainer}
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
+        {isDecrypting ? (
+          <View style={styles.taskCard}>
+            <GlitchText style={styles.taskTitle} glitchIntensity="medium">
+              {t.mission.decryptingTitle}
+            </GlitchText>
+            <Text style={styles.taskDecryptInstructions}>{t.mission.decryptingReceiving}</Text>
+          </View>
+        ) : (
+          <Animated.View style={{ opacity: fadeAnim }}>
             <View style={styles.taskCard}>
-              <GlitchText style={styles.taskTitle} glitchIntensity="medium">
-                {t.mission.decryptingTitle}
-              </GlitchText>
-              <Text style={[styles.taskInstructions, { textAlign: 'center', marginTop: 24 }]}>
-                {t.mission.decryptingReceiving}
-              </Text>
+              <Text style={styles.taskTitle}>{currentTask.title}</Text>
+              <View style={styles.taskMetaRow}>
+                <Text style={styles.taskMetaText}>{t.mission.headerStep(currentTask.number, totalSteps)}</Text>
+              </View>
+              <Text style={styles.taskObjective}>{currentTask.objective}</Text>
+              <Text style={styles.taskInstructions}>{currentTask.instructions}</Text>
             </View>
-          ) : (
-            <Animated.View style={{ opacity: fadeAnim }}>
-              <View style={styles.taskCard}>
-                <Text style={styles.taskTitle}>{currentTask.title}</Text>
-                <View style={styles.taskMetaRow}>
-                  <Text style={styles.taskMetaText}>{t.mission.headerStep(currentTask.number, totalSteps)}</Text>
+            {tasks[0].completed && (
+              <View style={styles.stealthCard}>
+                <Text style={styles.stealthLabel}>{t.mission.stealthLabel}</Text>
+                <View style={styles.stealthMeterContainer}>
+                  <View style={[styles.stealthMeterFill, { width: `${stealthLevel}%` }]} />
                 </View>
-                <Text style={styles.taskObjective}>{currentTask.objective}</Text>
-                <Text style={styles.taskInstructions}>{currentTask.instructions}</Text>
+                <Text style={styles.stealthValue}>{stealthLevel.toFixed(0)}%</Text>
               </View>
-              {tasks[0].completed && (
-                <View style={styles.stealthCard}>
-                  <Text style={styles.stealthLabel}>{t.mission.stealthLabel}</Text>
-                  <View style={styles.stealthMeterContainer}>
-                    <View style={[styles.stealthMeterFill, { width: `${stealthLevel}%` }]} />
-                  </View>
-                  <Text style={styles.stealthValue}>{stealthLevel.toFixed(0)}%</Text>
-                </View>
-              )}
-              <Pressable
-                style={[styles.taskButton, isSubmitting && styles.taskButtonDisabled]}
-                onPress={onExecuteCurrentTask}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.taskButtonText}>
-                  {isSubmitting ? t.mission.processing : t.mission.executeEnter}
-                </Text>
-              </Pressable>
-              <View style={styles.progressIndicator}>
-                {tasks.map((task, index) => (
-                  <View
-                    key={task.id}
-                    style={[
-                      styles.progressDot,
-                      task.completed && styles.progressDotComplete,
-                      index === currentTaskIndex && styles.progressDotActive,
-                    ]}
-                  />
-                ))}
-              </View>
-            </Animated.View>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+            )}
+            <Pressable
+              style={[styles.taskButton, isSubmitting && styles.taskButtonDisabled]}
+              onPress={onExecuteCurrentTask}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.taskButtonText}>
+                {isSubmitting ? t.mission.processing : t.mission.executeEnter}
+              </Text>
+            </Pressable>
+            <View style={styles.progressIndicator}>
+              {tasks.map((task, index) => (
+                <View
+                  key={task.id}
+                  style={[
+                    styles.progressDot,
+                    task.completed && styles.progressDotComplete,
+                    index === currentTaskIndex && styles.progressDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        )}
+      </ScrollView>
+    </CrtScreenShell>
   );
 }

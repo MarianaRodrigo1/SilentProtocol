@@ -5,20 +5,21 @@ import {
   type AgentVisualEvidenceRecord,
   getAgentLocations,
   getAgentSummary,
-  getAgentVisualEvidence,
-} from '../api/agents';
-import { resolveApiMediaUrl } from '../api/resolveMediaUrl';
+  resolveApiMediaUrl,
+} from '../api';
+import type { AgentConnectivityMode, LocalEvidence } from '../features/session/session.types';
 import { t } from '../i18n';
-import type { LocalEvidence } from '../types/evidence';
 import { getTelemetryMirror, type AgentTelemetryMirror } from '../storage/localTelemetryMirror';
-import { getBackgroundTrackingErrorTimestamp } from '../location/backgroundLocationTask';
+import { getBackgroundTrackingErrorTimestamp } from '../locationTelemetry';
+import { DEBRIEF_REVEAL_MS_1, DEBRIEF_REVEAL_MS_2, DEBRIEF_REVEAL_MS_3 } from '../constants';
+import { palette } from '../styles/theme';
 
 export type DebriefReportSource = 'server' | 'local_mirror' | 'local_fallback';
 
 interface UseDebriefingReportOptions {
   agentId: string;
   codename: string;
-  agentMode: 'online' | 'offline';
+  agentMode: AgentConnectivityMode;
   localEvidence: LocalEvidence;
 }
 
@@ -41,7 +42,6 @@ function buildSummaryFromMirror(
         longitude: tail.longitude,
         accuracy_meters: tail.accuracy_meters,
         source: tail.source,
-        captured_at: tail.captured_at,
         created_at: tail.created_at,
       }
     : null;
@@ -50,10 +50,9 @@ function buildSummaryFromMirror(
     agent: {
       id: agentId,
       codename,
-      status: 'MISSION_COMPLETE',
+      status: 'COMPLETED',
       created_at: nowIso,
       updated_at: nowIso,
-      biometric_confirmed: true,
       terms_accepted: true,
     },
     last_location: last,
@@ -63,6 +62,7 @@ function buildSummaryFromMirror(
       contacts_leaks: m.contactsLeaks,
       visual_evidence: visual,
     },
+    visual_evidence_recent: [],
   };
 }
 
@@ -119,18 +119,17 @@ export function useDebriefingReport({
     }
 
     try {
-      const [summaryPayload, locationsPayload, visualEvidencePayload] = await Promise.all([
+      const [summaryPayload, locationsPayload] = await Promise.all([
         getAgentSummary(agentId),
         getAgentLocations(agentId, { limit: 60, offset: 0 }),
-        getAgentVisualEvidence(agentId, { limit: 50, offset: 0 }),
       ]);
       if (!isCurrentRequest()) return;
       setSummary(summaryPayload);
       setLocations(locationsPayload.items);
-      setVisualEvidence(visualEvidencePayload.items);
+      setVisualEvidence(summaryPayload.visual_evidence_recent ?? []);
       setReportSource('server');
       setError(null);
-    } catch (_err: unknown) {
+    } catch {
       if (!isCurrentRequest()) return;
       const mirror = await getTelemetryMirror(agentId);
       if (!isCurrentRequest()) return;
@@ -150,9 +149,9 @@ export function useDebriefingReport({
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setRevealStage(1), 800),
-      setTimeout(() => setRevealStage(2), 1800),
-      setTimeout(() => setRevealStage(3), 2800),
+      setTimeout(() => setRevealStage(1), DEBRIEF_REVEAL_MS_1),
+      setTimeout(() => setRevealStage(2), DEBRIEF_REVEAL_MS_2),
+      setTimeout(() => setRevealStage(3), DEBRIEF_REVEAL_MS_3),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -168,10 +167,10 @@ export function useDebriefingReport({
   }, [summary]);
 
   const threatLevel = useMemo(() => {
-    if (exposureScore >= 75) return { level: t.debrief.threatLevelCritical, color: '#FF3131' };
-    if (exposureScore >= 50) return { level: t.debrief.threatLevelHigh, color: '#FF8C00' };
-    if (exposureScore >= 25) return { level: t.debrief.threatLevelModerate, color: '#FFD700' };
-    return { level: t.debrief.threatLevelLow, color: '#00FF41' };
+    if (exposureScore >= 75) return { level: t.debrief.threatLevelCritical, color: palette.alertRed };
+    if (exposureScore >= 50) return { level: t.debrief.threatLevelHigh, color: palette.warningAmber };
+    if (exposureScore >= 25) return { level: t.debrief.threatLevelModerate, color: palette.cautionGold };
+    return { level: t.debrief.threatLevelLow, color: palette.matrixGreen };
   }, [exposureScore]);
 
   const targetEvidence = visualEvidence.find((media) => media.media_type === 'TARGET');

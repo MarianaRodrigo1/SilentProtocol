@@ -1,24 +1,23 @@
 import * as SplashScreenNative from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Text, View } from 'react-native';
 import { CRTScanlines, GlitchText } from './crt';
+import { SPLASH_MIN_DISPLAY_MS } from '../constants';
 import { t } from '../i18n';
-import { palette, typography } from '../styles/theme';
-import { fireAndForget } from '../utils/async';
+import { splashStyles as styles } from '../styles/splash';
+import { fireAndForget } from '../utils/promiseUtils';
 
 let logoSource: number | undefined;
 try {
   logoSource = require('../../assets/logo.png');
-} catch (_error: unknown) {
+} catch {
   logoSource = undefined;
 }
 
 if (typeof SplashScreenNative.preventAutoHideAsync === 'function') {
   fireAndForget(SplashScreenNative.preventAutoHideAsync());
 }
-
-const MIN_DISPLAY_MS = 2200;
 
 interface SplashScreenProps {
   isReady: boolean;
@@ -55,7 +54,7 @@ export function SplashScreen({ isReady, children }: SplashScreenProps) {
     const hideSplash = async () => {
       try {
         const elapsed = Date.now() - mountedAt.current;
-        const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
+        const remaining = Math.max(0, SPLASH_MIN_DISPLAY_MS - elapsed);
         await new Promise((r) => setTimeout(r, remaining));
         if (typeof SplashScreenNative.hideAsync === 'function') {
           await SplashScreenNative.hideAsync();
@@ -65,7 +64,7 @@ export function SplashScreen({ isReady, children }: SplashScreenProps) {
           duration: 400,
           useNativeDriver: true,
         }).start(() => setShowSplash(false));
-      } catch (_error: unknown) {
+      } catch {
         setShowSplash(false);
       }
     };
@@ -97,44 +96,3 @@ export function SplashScreen({ isReady, children }: SplashScreenProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: palette.bgPrimary,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  content: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 24,
-  },
-  title: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.fontSizes.xxl,
-    color: palette.matrixGreen,
-    letterSpacing: 4,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.fontSizes.xs,
-    color: palette.textMuted,
-    letterSpacing: 2,
-  },
-});

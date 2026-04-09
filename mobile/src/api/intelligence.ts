@@ -1,26 +1,26 @@
-import { ApiError, apiMessages, requestJsonBody, requestVoid, requestVoidBody } from './http';
-import { appendReactNativeFileField } from './reactNativeMultipart';
+import { ApiError, apiMessages, requestJson, requestJsonBody } from './http';
 import type {
   BluetoothScanPayload,
   ContactLeakPayload,
+  InsertedCountResponse,
+  InsertedMediaRecord,
+  LocationBatchInsertResponse,
   PostLocationPayload,
   UploadMediaPayload,
 } from './contracts';
 
-export type {
-  BluetoothScanPayload,
-  ContactLeakPayload,
-  PostLocationPayload,
-  UploadMediaPayload,
-};
-
-export interface LocationBatchAck {
-  inserted: number;
-  skipped_duplicates: number;
+function appendReactNativeFile(
+  formData: FormData,
+  fieldName: string,
+  file: { uri: string; type: string; name: string },
+): void {
+  formData.append(fieldName, file as unknown as Blob);
 }
 
-export async function postLocationsBatch(payload: PostLocationPayload[]): Promise<LocationBatchAck> {
-  return requestJsonBody<LocationBatchAck>(
+export async function postLocationsBatch(
+  payload: PostLocationPayload[],
+): Promise<LocationBatchInsertResponse> {
+  return requestJsonBody<LocationBatchInsertResponse>(
     '/intelligence/locations',
     'POST',
     payload,
@@ -28,22 +28,32 @@ export async function postLocationsBatch(payload: PostLocationPayload[]): Promis
   );
 }
 
-export async function postBluetoothScans(scans: BluetoothScanPayload[]): Promise<void> {
-  await requestVoidBody('/intelligence/scans', 'POST', scans, apiMessages.postBluetooth);
+export async function postBluetoothScans(scans: BluetoothScanPayload[]): Promise<InsertedCountResponse> {
+  return requestJsonBody<InsertedCountResponse>(
+    '/intelligence/scans',
+    'POST',
+    scans,
+    apiMessages.postBluetooth,
+  );
 }
 
-export async function postContactLeaks(contacts: ContactLeakPayload[]): Promise<void> {
-  await requestVoidBody('/intelligence/contacts', 'POST', contacts, apiMessages.postContacts);
+export async function postContactLeaks(contacts: ContactLeakPayload[]): Promise<InsertedCountResponse> {
+  return requestJsonBody<InsertedCountResponse>(
+    '/intelligence/contacts',
+    'POST',
+    contacts,
+    apiMessages.postContacts,
+  );
 }
 
-export async function uploadMedia(payload: UploadMediaPayload): Promise<void> {
+export async function uploadMedia(payload: UploadMediaPayload): Promise<InsertedMediaRecord> {
   const formData = new FormData();
   formData.append('agent_id', payload.agent_id);
   formData.append('media_type', payload.media_type);
   const fileName = `${payload.media_type.toLowerCase()}-${Date.now()}.jpg`;
 
   if (payload.uri.startsWith('file:') || payload.uri.startsWith('content:')) {
-    appendReactNativeFileField(formData, 'file', {
+    appendReactNativeFile(formData, 'file', {
       uri: payload.uri,
       type: 'image/jpeg',
       name: fileName,
@@ -57,5 +67,9 @@ export async function uploadMedia(payload: UploadMediaPayload): Promise<void> {
     formData.append('file', blob, fileName);
   }
 
-  await requestVoid('/intelligence/media', { method: 'POST', body: formData }, apiMessages.uploadMedia);
+  return requestJson<InsertedMediaRecord>(
+    '/intelligence/media',
+    { method: 'POST', body: formData },
+    apiMessages.uploadMedia,
+  );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
+import { crtMotion } from '../../styles/crt';
 
 interface GlitchTextProps {
   children: React.ReactNode;
@@ -7,48 +8,52 @@ interface GlitchTextProps {
   glitchIntensity?: 'low' | 'medium' | 'high';
 }
 
-export const GlitchText: React.FC<GlitchTextProps> = React.memo(
-  ({ children, style, glitchIntensity = 'low' }) => {
+const GlitchTextInner: React.FC<GlitchTextProps> = ({ children, style, glitchIntensity = 'low' }) => {
     const glitchAnim = useRef(new Animated.Value(0)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-      const intensity = {
-        low: 5000,
-        medium: 2000,
-        high: 800,
-      }[glitchIntensity];
+      const baseIntervalMs = crtMotion.glitchIntensityBaseMs[glitchIntensity];
+      const {
+        glitchIntervalJitterMs,
+        glitchPulseMs,
+        glitchOpacityMid,
+        glitchTranslateMax,
+      } = crtMotion;
 
       const glitchSequence = () => {
         Animated.sequence([
           Animated.parallel([
             Animated.timing(glitchAnim, {
-              toValue: Math.random() * 10 - 5,
-              duration: 50,
+              toValue: Math.random() * (2 * glitchTranslateMax) - glitchTranslateMax,
+              duration: glitchPulseMs,
               useNativeDriver: true,
             }),
             Animated.timing(opacityAnim, {
-              toValue: 0.7,
-              duration: 50,
+              toValue: glitchOpacityMid,
+              duration: glitchPulseMs,
               useNativeDriver: true,
             }),
           ]),
           Animated.parallel([
             Animated.timing(glitchAnim, {
               toValue: 0,
-              duration: 50,
+              duration: glitchPulseMs,
               useNativeDriver: true,
             }),
             Animated.timing(opacityAnim, {
               toValue: 1,
-              duration: 50,
+              duration: glitchPulseMs,
               useNativeDriver: true,
             }),
           ]),
         ]).start();
       };
 
-      const interval = setInterval(glitchSequence, intensity + Math.random() * 2000);
+      const interval = setInterval(
+        glitchSequence,
+        baseIntervalMs + Math.random() * glitchIntervalJitterMs,
+      );
       return () => clearInterval(interval);
     }, [glitchAnim, opacityAnim, glitchIntensity]);
 
@@ -65,5 +70,7 @@ export const GlitchText: React.FC<GlitchTextProps> = React.memo(
         {children}
       </Animated.Text>
     );
-  },
-);
+};
+
+export const GlitchText = React.memo(GlitchTextInner);
+GlitchText.displayName = 'GlitchText';

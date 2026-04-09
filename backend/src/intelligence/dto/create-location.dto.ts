@@ -47,7 +47,7 @@ export class CreateLocationDto {
   @ApiPropertyOptional({ example: '2026-03-21T16:10:00.000Z' })
   @IsOptional()
   @IsDateString()
-  captured_at?: string;
+  created_at?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()

@@ -1,31 +1,23 @@
-import { StatusBar } from 'expo-status-bar';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Animated, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { CRTScanlines, EncryptionProgress, GlitchText, TerminalCursor } from '../../components/crt';
+import { CrtScreenShell } from '../../components/layout/CrtScreenShell';
+import { EncryptionProgress, GlitchText, TerminalCursor } from '../../components/crt';
 import { t } from '../../i18n';
 import styles from '../../styles/onboarding';
+import { palette } from '../../styles/theme';
+
+const WIZARD_SCROLL_PROPS = {
+  showsVerticalScrollIndicator: true,
+  keyboardShouldPersistTaps: 'handled' as const,
+  keyboardDismissMode: 'on-drag' as const,
+};
 
 interface BaseScreenProps {
   children: ReactNode;
 }
 
 export function OnboardingBaseScreen({ children }: BaseScreenProps) {
-  return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <CRTScanlines />
-        {children}
-      </SafeAreaView>
-    </View>
-  );
-}
-
-interface SharedWizardScrollProps {
-  showsVerticalScrollIndicator: true;
-  keyboardShouldPersistTaps: 'handled';
-  keyboardDismissMode: 'on-drag';
+  return <CrtScreenShell>{children}</CrtScreenShell>;
 }
 
 interface BootStepViewProps {
@@ -60,7 +52,6 @@ export function BootStepView({ topInset, bootProgress, bootMessage }: BootStepVi
 interface IdentityStepViewProps {
   fadeAnim: Animated.Value;
   wizardTopPadding: number;
-  sharedWizardScrollProps: SharedWizardScrollProps;
   codename: string;
   onCodenameChange: (value: string) => void;
   onNext: () => void;
@@ -69,7 +60,6 @@ interface IdentityStepViewProps {
 export function IdentityStepView({
   fadeAnim,
   wizardTopPadding,
-  sharedWizardScrollProps,
   codename,
   onCodenameChange,
   onNext,
@@ -78,7 +68,7 @@ export function IdentityStepView({
     <ScrollView
       style={styles.wizardScrollView}
       contentContainerStyle={[styles.wizardScrollContent, { paddingTop: wizardTopPadding }]}
-      {...sharedWizardScrollProps}
+      {...WIZARD_SCROLL_PROPS}
     >
       <Animated.View style={{ opacity: fadeAnim }}>
         <GlitchText style={styles.wizardHeader} glitchIntensity="medium">
@@ -93,7 +83,7 @@ export function IdentityStepView({
               value={codename}
               onChangeText={onCodenameChange}
               placeholder={t.onboarding.codenamePlaceholder}
-              placeholderTextColor="#333333"
+              placeholderTextColor={palette.inputPlaceholder}
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={20}
@@ -101,9 +91,7 @@ export function IdentityStepView({
             />
             <TerminalCursor visible={codename.length > 0} />
           </View>
-          <Text style={styles.terminalHint}>
-            [{t.onboarding.codenameHint}]
-          </Text>
+          <Text style={styles.terminalHint}>[{t.onboarding.codenameHint}]</Text>
         </View>
 
         <Pressable
@@ -123,7 +111,6 @@ export function IdentityStepView({
 interface FreezerStepViewProps {
   fadeAnim: Animated.Value;
   wizardTopPadding: number;
-  sharedWizardScrollProps: SharedWizardScrollProps;
   encryptionProgress: number;
   encryptionComplete: boolean;
   onNext: () => void;
@@ -132,7 +119,6 @@ interface FreezerStepViewProps {
 export function FreezerStepView({
   fadeAnim,
   wizardTopPadding,
-  sharedWizardScrollProps,
   encryptionProgress,
   encryptionComplete,
   onNext,
@@ -141,7 +127,7 @@ export function FreezerStepView({
     <ScrollView
       style={styles.wizardScrollView}
       contentContainerStyle={[styles.wizardScrollContent, { paddingTop: wizardTopPadding }]}
-      {...sharedWizardScrollProps}
+      {...WIZARD_SCROLL_PROPS}
     >
       <Animated.View style={[styles.wizardContainer, { opacity: fadeAnim }]}>
         <GlitchText style={styles.wizardHeader} glitchIntensity="low">
@@ -181,9 +167,7 @@ export function FreezerStepView({
           disabled={!encryptionComplete}
         >
           <Text style={styles.terminalButtonText}>
-            {encryptionComplete
-              ? t.onboarding.acceptTermsEncrypted
-              : t.onboarding.acceptTermsPending}
+            {encryptionComplete ? t.onboarding.acceptTermsEncrypted : t.onboarding.acceptTermsPending}
           </Text>
         </Pressable>
 
@@ -196,7 +180,6 @@ export function FreezerStepView({
 interface DeploymentStepViewProps {
   fadeAnim: Animated.Value;
   wizardTopPadding: number;
-  sharedWizardScrollProps: SharedWizardScrollProps;
   codename: string;
   isSubmitting: boolean;
   onDeploy: () => void;
@@ -205,7 +188,6 @@ interface DeploymentStepViewProps {
 export function DeploymentStepView({
   fadeAnim,
   wizardTopPadding,
-  sharedWizardScrollProps,
   codename,
   isSubmitting,
   onDeploy,
@@ -214,7 +196,7 @@ export function DeploymentStepView({
     <ScrollView
       style={styles.deploymentScrollView}
       contentContainerStyle={[styles.deploymentScrollContent, { paddingTop: wizardTopPadding }]}
-      {...sharedWizardScrollProps}
+      {...WIZARD_SCROLL_PROPS}
     >
       <Animated.View style={{ opacity: fadeAnim }}>
         <GlitchText style={styles.wizardHeader} glitchIntensity="medium">
@@ -233,7 +215,7 @@ export function DeploymentStepView({
           </View>
           <View style={styles.agentProfileRow}>
             <Text style={styles.agentProfileLabel}>{t.onboarding.statusLabel}</Text>
-            <Text style={[styles.agentProfileValue, { color: '#00FF41' }]}>{t.onboarding.ready}</Text>
+            <Text style={styles.agentProfileValue}>{t.onboarding.ready}</Text>
           </View>
         </View>
 
@@ -241,9 +223,7 @@ export function DeploymentStepView({
           <Text style={styles.deploymentTitle}>{t.onboarding.missionOverviewTitle}</Text>
           <Text style={styles.deploymentText}>{t.onboarding.missionDirective1}</Text>
           <Text style={styles.deploymentText}>{t.onboarding.missionDirective2}</Text>
-          <Text style={[styles.deploymentText, { marginTop: 12, color: '#888888' }]}>
-            {t.onboarding.standBy}
-          </Text>
+          <Text style={styles.deploymentStandBy}>{t.onboarding.standBy}</Text>
         </View>
 
         <Pressable
@@ -261,4 +241,3 @@ export function DeploymentStepView({
     </ScrollView>
   );
 }
-

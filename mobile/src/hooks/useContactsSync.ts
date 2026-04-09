@@ -1,15 +1,15 @@
 import * as Contacts from 'expo-contacts';
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
-import { postContactLeaks } from '../api/intelligence';
+import { postContactLeaks } from '../api';
 import {
   enqueueContactsOutbox,
   enqueueContactsOutboxMany,
   flushContactsOutboxInBatches,
 } from '../services/contactsOutbox';
-import { hashText } from '../utils/missionUtils';
+import { hashText } from '../utils/identifiers';
 import { CONTACTS_SYNC_INTERVAL_MS, MAX_CONTACTS_PER_SYNC } from '../constants';
-import type { ContactsSyncResult } from './telemetry.types';
+import type { ContactsSyncResult } from '../types/missionRuntime';
 import { useOutboxDelivery } from './useOutboxDelivery';
 import {
   deliverTelemetryBatch,
@@ -30,7 +30,7 @@ function buildContactEntries(contacts: Contacts.Contact[]): { contact_hash: stri
   });
 }
 
-function buildSnapshotDigest(entries: Array<{ contact_hash: string }>): string {
+function buildSnapshotDigest(entries: { contact_hash: string }[]): string {
   return entries
     .map((entry) => entry.contact_hash)
     .sort()
@@ -119,7 +119,7 @@ export function useContactsSync(agentId: string, syncToServer = true) {
           lastQueuedDigestRef.current = snapshotDigest;
         }
         return result;
-      } catch (_error: unknown) {
+      } catch {
         return deliveryFailedTelemetryResult();
       }
     },

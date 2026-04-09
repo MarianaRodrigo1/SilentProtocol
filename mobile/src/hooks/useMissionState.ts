@@ -1,5 +1,11 @@
 import { useCallback, useMemo, useReducer } from 'react';
-import { createInitialTasks, type Task, type TaskType } from '../features/mission/domain/missionTasks';
+import { MISSION_MAX_STEALTH_LEVEL } from '../constants';
+import {
+  createInitialTasks,
+  type Task,
+  type TaskCompleteModalState,
+  type TaskType,
+} from '../features/mission/domain/missionTasks';
 
 type MissionPhase = 'briefing' | 'active' | 'complete';
 const FALLBACK_TASK = createInitialTasks()[0]!;
@@ -36,11 +42,9 @@ interface MissionState {
   targetPhotoUri: string | null;
   stealthPhotoUri: string | null;
   showCameraScreen: boolean;
-  taskCompleteModal: { visible: boolean; taskNumber: number };
+  taskCompleteModal: TaskCompleteModalState;
   isDecrypting: boolean;
 }
-
-const MAX_STEALTH_LEVEL = 100;
 
 function isActivePhase(state: MissionState): boolean {
   return state.missionPhase === 'active';
@@ -79,7 +83,7 @@ function missionReducer(state: MissionState, action: MissionStateAction): Missio
         ...state,
         tasks: nextTasks,
         currentTaskIndex: nextIndex >= 0 ? nextIndex : state.currentTaskIndex,
-        stealthLevel: Math.min(MAX_STEALTH_LEVEL, state.stealthLevel + stealthIncrement),
+        stealthLevel: Math.min(MISSION_MAX_STEALTH_LEVEL, state.stealthLevel + stealthIncrement),
         taskCompleteModal: { visible: true, taskNumber },
       };
     }
@@ -101,7 +105,7 @@ function missionReducer(state: MissionState, action: MissionStateAction): Missio
       };
     case 'LOCATION_SENT':
       if (!isActivePhase(state)) return state;
-      return { ...state, stealthLevel: Math.min(MAX_STEALTH_LEVEL, state.stealthLevel + 3) };
+      return { ...state, stealthLevel: Math.min(MISSION_MAX_STEALTH_LEVEL, state.stealthLevel + 3) };
     case 'START_DECRYPTING':
       if (!isActivePhase(state) || state.showCameraScreen) return state;
       return { ...state, isDecrypting: true };

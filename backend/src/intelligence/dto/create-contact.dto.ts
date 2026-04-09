@@ -8,12 +8,6 @@ export class CreateContactDto {
   @IsUUID('4')
   agent_id!: string;
 
-  @ApiPropertyOptional({ format: 'uuid' })
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
-  @IsUUID('4')
-  location_id?: string;
-
   @ApiProperty({ maxLength: 255, example: 'f2c7f0f46fda5b5f41268f3f6f6ef88f' })
   @IsString()
   @IsNotEmpty()

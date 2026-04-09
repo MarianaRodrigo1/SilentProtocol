@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet } from 'react-native';
-import { palette } from '../../styles/theme';
+import { Animated } from 'react-native';
+import { crtMotion, terminalCursorStyles as styles } from '../../styles/crt';
 
 export const TerminalCursor: React.FC<{ visible?: boolean }> = ({ visible = true }) => {
   const cursorAnim = useRef(new Animated.Value(1)).current;
+  const { terminalCursorBlinkHalfMs } = crtMotion;
 
   useEffect(() => {
     if (!visible) return;
@@ -12,37 +13,19 @@ export const TerminalCursor: React.FC<{ visible?: boolean }> = ({ visible = true
       Animated.sequence([
         Animated.timing(cursorAnim, {
           toValue: 0,
-          duration: 500,
+          duration: terminalCursorBlinkHalfMs,
           useNativeDriver: true,
         }),
         Animated.timing(cursorAnim, {
           toValue: 1,
-          duration: 500,
+          duration: terminalCursorBlinkHalfMs,
           useNativeDriver: true,
         }),
       ]),
     ).start();
-  }, [cursorAnim, visible]);
+  }, [cursorAnim, visible, terminalCursorBlinkHalfMs]);
 
   if (!visible) return null;
 
-  return (
-    <Animated.View
-      style={[
-        styles.cursor,
-        {
-          opacity: cursorAnim,
-        },
-      ]}
-    />
-  );
+  return <Animated.View style={[styles.cursor, { opacity: cursorAnim }]} />;
 };
-
-const styles = StyleSheet.create({
-  cursor: {
-    width: 10,
-    height: 20,
-    backgroundColor: palette.matrixGreen,
-    marginLeft: 2,
-  },
-});

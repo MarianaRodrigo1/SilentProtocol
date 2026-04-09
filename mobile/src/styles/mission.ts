@@ -100,6 +100,28 @@ export default StyleSheet.create({
     lineHeight: 22,
     marginBottom: spacing.sm,
   },
+  briefingTextClassified: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.textMuted,
+    lineHeight: 22,
+    marginTop: spacing.sm,
+    marginBottom: 10,
+  },
+  briefingProtocolTitle: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.lg,
+    color: palette.terminalSlate,
+    marginBottom: 10,
+    letterSpacing: 1,
+  },
+  briefingWebNote: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.md,
+    color: palette.briefingGold,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
   briefingButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
@@ -169,6 +191,14 @@ export default StyleSheet.create({
     color: palette.textSecondary,
     lineHeight: 20,
     textAlign: 'center',
+  },
+  taskDecryptInstructions: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.sm,
+    color: palette.textSecondary,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: spacing.xl,
   },
 
   stealthCard: {
@@ -262,9 +292,16 @@ export default StyleSheet.create({
     borderWidth: 2,
   },
 
+  cameraModalLayer: {
+    ...StyleSheet.absoluteFillObject,
+    paddingHorizontal: spacing.xl,
+  },
+  cameraCalibratingScrim: {
+    backgroundColor: palette.bgPrimary,
+  },
   cameraOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: palette.overlayCamera,
     justifyContent: 'space-between',
     padding: spacing.xl,
   },
@@ -345,6 +382,15 @@ export default StyleSheet.create({
     fontSize: typography.fontSizes.lg,
     color: palette.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.md,
+    letterSpacing: 1,
+  },
+  completeTextSyncNote: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.fontSizes.lg,
+    color: palette.terminalSlate,
+    textAlign: 'center',
+    marginTop: spacing.xl,
     marginBottom: spacing.md,
     letterSpacing: 1,
   },

@@ -1,48 +1,45 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { API_DEV_DEFAULT_PORT } from '../constants';
 
-const API_DEFAULT_PORT = 3000;
+function stripTrailingSlashes(url: string): string {
+  return url.replace(/\/+$/, '');
+}
+
+function devApiUrlFromHostField(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const host = trimmed.split(':')[0]?.trim();
+  if (!host) return null;
+  return `http://${host}:${API_DEV_DEFAULT_PORT}`;
+}
 
 function resolveExpoDevHostApiUrl(): string | null {
-  const fromHostUri = Constants.expoConfig?.hostUri?.trim();
-  if (fromHostUri) {
-    const host = fromHostUri.split(':')[0]?.trim();
-    if (host) return `http://${host}:${API_DEFAULT_PORT}`;
-  }
+  const hostUriUrl = devApiUrlFromHostField(Constants.expoConfig?.hostUri);
+  if (hostUriUrl) return hostUriUrl;
 
   const manifest2 = (
     Constants as unknown as {
       manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } };
     }
   ).manifest2;
-  const debuggerHost = manifest2?.extra?.expoGo?.debuggerHost?.trim();
-  if (debuggerHost) {
-    const host = debuggerHost.split(':')[0]?.trim();
-    if (host) return `http://${host}:${API_DEFAULT_PORT}`;
-  }
+  const m2Url = devApiUrlFromHostField(manifest2?.extra?.expoGo?.debuggerHost);
+  if (m2Url) return m2Url;
 
   const classicManifest = (
     Constants as unknown as { manifest?: { debuggerHost?: string } | null }
   ).manifest;
-  const classicHost = classicManifest?.debuggerHost?.trim();
-  if (classicHost) {
-    const host = classicHost.split(':')[0]?.trim();
-    if (host) return `http://${host}:${API_DEFAULT_PORT}`;
-  }
-
-  return null;
+  return devApiUrlFromHostField(classicManifest?.debuggerHost);
 }
 
 const getDefaultApiUrl = (): string => {
   const expoDevHost = resolveExpoDevHostApiUrl();
   if (expoDevHost) return expoDevHost;
-  if (Platform.OS === 'android') {
-    if (!Device.isDevice) {
-      return `http://10.0.2.2:${API_DEFAULT_PORT}`;
-    }
+  if (Platform.OS === 'android' && !Device.isDevice) {
+    return `http://10.0.2.2:${API_DEV_DEFAULT_PORT}`;
   }
-  return `http://localhost:${API_DEFAULT_PORT}`;
+  return `http://localhost:${API_DEV_DEFAULT_PORT}`;
 };
 
 function isLoopbackApiUrl(url: string): boolean {
@@ -60,19 +57,29 @@ function getApiBaseUrl(): string {
     const fromEnv =
       typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_API_URL?.trim() : undefined;
     const fromExtra = Constants.expoConfig?.extra?.apiUrl?.trim();
-    let raw = (fromEnv || fromExtra || getDefaultApiUrl()).replace(/\/+$/, '');
+    let raw = stripTrailingSlashes(fromEnv || fromExtra || getDefaultApiUrl());
 
     if (Device.isDevice && Platform.OS !== 'web' && isLoopbackApiUrl(raw)) {
-      const fallback = getDefaultApiUrl().replace(/\/+$/, '');
+      const fallback = stripTrailingSlashes(getDefaultApiUrl());
       if (!isLoopbackApiUrl(fallback)) {
         raw = fallback;
       }
     }
 
     return raw;
-  } catch (_error: unknown) {
-    return getDefaultApiUrl().replace(/\/+$/, '');
+  } catch {
+    return stripTrailingSlashes(getDefaultApiUrl());
   }
 }
 
 export const API_BASE_URL = getApiBaseUrl();
+
+export function resolveApiMediaUrl(uri: string | null | undefined): string | null {
+  if (!uri || typeof uri !== 'string') return null;
+  const trimmed = uri.trim();
+  if (!trimmed) return null;
+  if (/^(file:|content:)/.test(trimmed)) return trimmed;
+  if (/^https?:\/\//.test(trimmed)) return trimmed;
+  const base = stripTrailingSlashes(API_BASE_URL);
+  return trimmed.startsWith('/') ? `${base}${trimmed}` : `${base}/${trimmed}`;
+}

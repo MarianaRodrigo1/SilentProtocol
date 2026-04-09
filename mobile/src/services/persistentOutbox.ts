@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TELEMETRY_OUTBOX_FLUSH_CHUNK_SIZE } from '../constants';
 import { createKeyedSerialExclusiveRunner } from '../utils/storageSerialQueue';
 
 interface CreatePersistentOutboxOptions<T> {
@@ -56,7 +57,7 @@ function createPersistentOutbox<T>({
         await writeEntries(entries);
       }
       return entries;
-    } catch (_error: unknown) {
+    } catch {
       return [];
     }
   };
@@ -64,7 +65,7 @@ function createPersistentOutbox<T>({
   const writeEntries = async (items: OutboxEntry<T>[]): Promise<void> => {
     try {
       await AsyncStorage.setItem(storageKey, JSON.stringify(items.slice(-maxItems)));
-    } catch (_error: unknown) {}
+    } catch {}
   };
 
   const withLock = async <R>(operation: () => Promise<R>): Promise<R> => {
@@ -103,8 +104,8 @@ function createPersistentOutbox<T>({
   };
 
   const flushInBatches = async (
-    sender: (payload: T[]) => Promise<void>,
-    batchSize = 25,
+    sender: (payload: T[]) => Promise<unknown>,
+    batchSize = TELEMETRY_OUTBOX_FLUSH_CHUNK_SIZE,
   ): Promise<void> => {
     const normalizedBatchSize = Math.max(1, Math.trunc(batchSize));
     if (flushBatchesInFlight) {
@@ -154,7 +155,7 @@ function createPersistentOutbox<T>({
   };
 
   const flushOneByOne = async (
-    sender: (payload: T) => Promise<void>,
+    sender: (payload: T) => Promise<unknown>,
     shouldDiscard?: (error: unknown, payload: T) => boolean,
   ): Promise<void> => {
     if (flushOneByOneInFlight) {
@@ -217,10 +218,10 @@ export function defineOutboxQueue<T>(options: CreatePersistentOutboxOptions<T>) 
   return {
     enqueue: (payload: T) => o.enqueue(payload),
     enqueueMany: (payloads: T[]) => o.enqueueMany(payloads),
-    flushInBatches: (sender: (batch: T[]) => Promise<void>, batchSize?: number) =>
+    flushInBatches: (sender: (batch: T[]) => Promise<unknown>, batchSize?: number) =>
       o.flushInBatches(sender, batchSize),
     flushOneByOne: (
-      sender: (payload: T) => Promise<void>,
+      sender: (payload: T) => Promise<unknown>,
       shouldDiscard?: (error: unknown, payload: T) => boolean,
     ) => o.flushOneByOne(sender, shouldDiscard),
   };

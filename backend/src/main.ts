@@ -4,7 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
-import { PUBLIC_DIR, UPLOADS_DIR } from './common/constants';
+import { DEFAULT_CORS_ORIGINS, DEFAULT_HTTP_PORT, PUBLIC_DIR, UPLOADS_DIR } from './common/constants';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -13,12 +13,9 @@ async function bootstrap(): Promise<void> {
   expressApp.get('/', (_req: Request, res: Response) => {
     res.redirect(302, '/agent-tracker.html');
   });
-  const corsOrigins = (
-    process.env.CORS_ORIGINS ??
-    'http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006'
-  )
+  const corsOrigins = (process.env.CORS_ORIGINS ?? DEFAULT_CORS_ORIGINS)
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin: string) => origin.trim())
     .filter(Boolean);
   const allowAnyOrigin = corsOrigins.includes('*');
   app.enableCors({
@@ -39,13 +36,13 @@ async function bootstrap(): Promise<void> {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Silent Protocol API')
-    .setDescription('Technical challenge backend API')
+    .setDescription('Technical Challenge Backend API')
     .setVersion('1.0.0')
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, swaggerDocument);
 
-  const port = Number(process.env.PORT ?? 3000);
+  const port = Number(process.env.PORT ?? DEFAULT_HTTP_PORT);
   await app.listen(port);
 }
 

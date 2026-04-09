@@ -6,7 +6,7 @@ import {
   flushMediaOutboxBestEffort,
   uploadCapturedMediaWithRetry,
 } from '../services/mediaDelivery';
-import { fireAndForget } from '../utils/async';
+import { fireAndForget } from '../utils/promiseUtils';
 import {
   BACK_CAMERA_READY_DELAY_MS,
   FRONT_CAPTURE_STABILIZE_MS,
@@ -38,7 +38,7 @@ export interface UseMissionCameraOptions {
   onTaskComplete: () => void;
   showError: (
     message: string,
-    buttons?: Array<{ text: string; onPress?: () => void }>,
+    buttons?: { text: string; onPress?: () => void }[],
     title?: string,
   ) => void;
 }
@@ -179,7 +179,7 @@ export function useMissionCamera({
       let rearPhoto: { uri: string } | null = null;
       try {
         rearPhoto = await takeRearPicture();
-      } catch (_error: unknown) {
+      } catch {
         await new Promise((r) => setTimeout(r, REAR_CAPTURE_RETRY_MS));
         rearPhoto = await takeRearPicture().catch((_retryError: unknown) => null);
       }

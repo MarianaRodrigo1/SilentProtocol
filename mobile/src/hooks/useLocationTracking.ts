@@ -2,21 +2,37 @@ import { useCallback } from 'react';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import {
-  BACKGROUND_LOCATION_TASK,
-  stopBackgroundLocationUpdatesAsync,
-} from '../location/backgroundLocationTask';
-import {
   BACKGROUND_DISTANCE_INTERVAL_METERS,
   LOCATION_UPDATE_INTERVAL_MS,
-} from '../location/locationTelemetryConfig';
-import { clearTelemetrySession, persistTelemetrySession } from '../location/telemetrySessionStorage';
+} from '../constants';
 import {
-  type LocationPermissionSnapshot,
-  type StartContinuousTrackingResult,
-  TrackedPosition,
-} from './useLocationTracking.types';
-import { captureCurrentTrackedPosition } from './locationCapture';
-import { runBestEffort } from '../utils/async';
+  BACKGROUND_LOCATION_TASK,
+  clearTelemetrySession,
+  persistTelemetrySession,
+  stopBackgroundLocationUpdatesAsync,
+} from '../locationTelemetry';
+import { captureCurrentTrackedPosition, type TrackedPosition } from './locationCapture';
+import { runBestEffort } from '../utils/promiseUtils';
+
+export type { TrackedPosition } from './locationCapture';
+
+export interface LocationPermissionSnapshot {
+  foregroundGranted: boolean;
+  backgroundGranted: boolean;
+  canAskAgainForeground: boolean;
+  canAskAgainBackground: boolean;
+}
+
+export type StartContinuousTrackingFailureCode =
+  | 'foreground_denied'
+  | 'background_denied'
+  | 'storage_failed'
+  | 'native_start_failed'
+  | 'unknown';
+
+export type StartContinuousTrackingResult =
+  | { ok: true; foregroundOnly?: boolean }
+  | { ok: false; code: StartContinuousTrackingFailureCode; detail?: string };
 
 function formatErrorDetail(error: unknown): string | undefined {
   if (error instanceof Error && error.message.trim()) {
@@ -29,13 +45,6 @@ function formatErrorDetail(error: unknown): string | undefined {
   }
   return undefined;
 }
-
-export type {
-  LocationPermissionSnapshot,
-  StartContinuousTrackingFailureCode,
-  StartContinuousTrackingResult,
-  TrackedPosition,
-} from './useLocationTracking.types';
 
 export function useLocationTracking() {
   const ensureLocationPermissions = useCallback(async (): Promise<LocationPermissionSnapshot> => {

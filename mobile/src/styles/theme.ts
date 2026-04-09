@@ -15,6 +15,14 @@ export const palette = {
   textTerminal: '#00FF41',
   scanline: 'rgba(0, 255, 65, 0.03)',
   crtGlow: 'rgba(0, 255, 65, 0.1)',
+  terminalSlate: '#91A5BC',
+  warningAmber: '#FF8C00',
+  cautionGold: '#FFD700',
+  briefingGold: '#c9a227',
+  inputPlaceholder: '#333333',
+  overlayDark: 'rgba(0, 0, 0, 0.4)',
+  overlayCamera: 'rgba(0, 0, 0, 0.3)',
+  modalBackdrop: 'rgba(0, 0, 0, 0.9)',
 };
 
 export const spacing = {

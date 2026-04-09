@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { clearGameSession, loadGameSession, saveGameSession } from '../../storage/gameSession';
-import type { LocalEvidence } from '../../types/evidence';
-import type { AgentSession } from './session.types';
-import { fireAndForget, runBestEffort } from '../../utils/async';
+import type { AgentSession, LocalEvidence } from './session.types';
+import { fireAndForget, runBestEffort } from '../../utils/promiseUtils';
 
 interface UseGameSessionState {
   isHydrating: boolean;

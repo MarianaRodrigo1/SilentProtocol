@@ -1,12 +1,14 @@
 import { Platform } from 'react-native';
-import { t } from '../i18n';
+import { LOCATION_START_SYNC_IN_FLIGHT_DELAY_MS, LOCATION_START_SYNC_IN_FLIGHT_RETRIES } from '../constants';
 import type { TaskType } from '../features/mission/domain/missionTasks';
-import { delay } from '../utils/async';
-import { handleLocationTrackingStartFailure, runTelemetryTask } from './missionTask.telemetry';
-import type { MissionTaskExecutorDeps } from './missionTask.types';
-
-export const LOCATION_START_SYNC_IN_FLIGHT_RETRIES = 32;
-export const LOCATION_START_SYNC_IN_FLIGHT_DELAY_MS = 150;
+import { t } from '../i18n';
+import { delay } from '../utils/promiseUtils';
+import {
+  handleLocationTrackingStartFailure,
+  locationTrackingFailureUi,
+  runTelemetryTask,
+} from './missionTask.telemetry';
+import type { MissionTaskExecutorDeps } from '../types/missionRuntime';
 
 export async function startLocationTrackingWithRetries(
   startLocationTracking: MissionTaskExecutorDeps['startLocationTracking'],
@@ -44,17 +46,11 @@ export function executeMissionTask(deps: MissionTaskExecutorDeps): void {
     await runWithSubmittingGuard(async () => {
       const tracking = await startLocationTrackingWithRetries(startLocationTracking);
       if (!tracking.ok) {
-        handleLocationTrackingStartFailure(permissions, tracking.error, {
-          blockedMessage: t.mission.locationPermissionBlockedMsg,
-          blockedTitle: t.mission.locationPermissionTitle,
-          blockedObjectiveMessage: t.mission.locationPermissionObjectiveMsg,
-          backgroundBlockedMessage: t.mission.locationBackgroundPermissionBlockedMsg,
-          backgroundBlockedTitle: t.mission.locationBackgroundPermissionTitle,
-          backgroundBlockedObjectiveMessage: t.mission.locationBackgroundPermissionObjectiveMsg,
-          nativeStartFailedMessage: t.mission.locationNativeStartFailedMsg,
-          errorTitle: t.mission.locationError,
-          onObjectiveDenied: showObjectiveAlert,
-        });
+        handleLocationTrackingStartFailure(
+          permissions,
+          tracking.error,
+          locationTrackingFailureUi(showObjectiveAlert),
+        );
         return;
       }
 

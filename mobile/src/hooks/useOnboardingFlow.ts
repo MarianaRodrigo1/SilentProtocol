@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { createAgent } from '../api/agents';
-import { getApiErrorInfo } from '../api/http';
+import { createAgent, getApiErrorInfo } from '../api';
+import {
+  ONBOARDING_BOOT_TICK_MS,
+  ONBOARDING_BOOT_TO_IDENTITY_DELAY_MS,
+  ONBOARDING_FREEZER_TICK_MS,
+} from '../constants';
 import { t } from '../i18n';
-import { createUuidV4 } from '../utils/uuid';
+import type { AgentConnectivityMode } from '../features/session/session.types';
+import { createUuidV4 } from '../utils/identifiers';
 
 export type WizardStep = 'boot' | 'identity' | 'freezer' | 'deployment';
 
@@ -25,11 +30,11 @@ type OnboardingAction =
 
 interface UseOnboardingFlowOptions {
   bootSequenceLength: number;
-  onAgentReady: (agentId: string, codename: string, mode: 'online' | 'offline') => void;
+  onAgentReady: (agentId: string, codename: string, mode: AgentConnectivityMode) => void;
   showAlert: (
     title: string,
     message: string,
-    buttons?: Array<{ text: string; onPress?: () => void; style?: 'cancel' | 'default' | 'destructive' }>,
+    buttons?: { text: string; onPress?: () => void; style?: 'cancel' | 'default' | 'destructive' }[],
   ) => void;
   onAnimateStep: () => void;
 }
@@ -84,7 +89,7 @@ export function useOnboardingFlow({
 
     const tick = setInterval(() => {
       dispatch({ type: 'BOOT_ADVANCE', payload: { maxStep: bootMaxStep } });
-    }, 200);
+    }, ONBOARDING_BOOT_TICK_MS);
 
     return () => {
       clearInterval(tick);
@@ -96,7 +101,7 @@ export function useOnboardingFlow({
     if (state.bootStep < bootMaxStep) return undefined;
     const completionTimer = setTimeout(() => {
       dispatch({ type: 'SET_WIZARD_STEP', payload: 'identity' });
-    }, 800);
+    }, ONBOARDING_BOOT_TO_IDENTITY_DELAY_MS);
     return () => clearTimeout(completionTimer);
   }, [bootMaxStep, state.bootStep, state.wizardStep]);
 
@@ -115,7 +120,7 @@ export function useOnboardingFlow({
     dispatch({ type: 'FREEZER_RESET' });
     const interval = setInterval(() => {
       dispatch({ type: 'FREEZER_PROGRESS_TICK', payload: Math.random() * 5 + 2 });
-    }, 100);
+    }, ONBOARDING_FREEZER_TICK_MS);
     return () => clearInterval(interval);
   }, [state.wizardStep]);
 
@@ -153,7 +158,6 @@ export function useOnboardingFlow({
       dispatch({ type: 'SET_SUBMITTING', payload: true });
       const agent = await createAgent({
         codename: normalizedCodename,
-        biometric_confirmed: true,
         terms_accepted: true,
       });
       onAgentReady(agent.id, normalizedCodename, 'online');

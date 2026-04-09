@@ -8,12 +8,6 @@ export class CreateScanDto {
   @IsUUID('4')
   agent_id!: string;
 
-  @ApiPropertyOptional({ format: 'uuid' })
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
-  @IsUUID('4')
-  location_id?: string;
-
   @ApiProperty({ example: 'AA:BB:CC:DD:EE:FF', maxLength: 17 })
   @IsString()
   @IsNotEmpty()
